@@ -1,0 +1,256 @@
+.lineage-tab {
+  width: 100%;
+  height: 100%;
+  background: white;
+  position: relative;
+
+  // Only the direct ReactFlowProvider wrapper
+  > div {
+    width: 100%;
+    height: 100%;
+  }
+
+  .react-flow {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.lineage-tab-empty,
+.lineage-tab-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+// Compact node styling
+.provenance-node {
+  background: white;
+  border: 2px solid #1e293b;
+  border-radius: 8px;
+  width: 160px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #0f172a;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.expanded {
+    width: 300px;
+    position: relative;
+    z-index: 99999 !important;
+  }
+
+  // Type-specific border colors (entire border)
+  &.config {
+    border-color: #3b82f6; // Blue
+  }
+
+  &.code {
+    border-color: #8b5cf6; // Purple
+  }
+
+  &.dataset, &.data {
+    border-color: #10b981; // Green
+  }
+
+  &.dependencies, &.deps {
+    border-color: #f59e0b; // Amber
+  }
+
+  &.environment, &.env {
+    border-color: #06b6d4; // Cyan
+  }
+
+  &.model {
+    border-color: #f97316; // Orange
+  }
+
+  &.image, &.images {
+    border-color: #ec4899; // Pink
+  }
+
+  &.log, &.logs {
+    border-color: #64748b; // Slate
+  }
+
+  &.run {
+    border-color: #dc2626; // Red
+    border-width: 3px;
+  }
+
+  // Default artifact (no type)
+  &.artifact {
+    border-color: #94a3b8; // Gray
+  }
+}
+
+.node-header {
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.node-label {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-hash {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-expanded {
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  background: #f8fafc;
+  font-size: 11px;
+}
+
+.expanded-row {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  gap: 2px;
+}
+
+.expanded-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.expanded-value {
+  color: #1e293b;
+  font-family: 'Monaco', 'Courier New', monospace;
+  word-break: break-all;
+}
+
+.artifact-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.artifact-action-btn {
+  padding: 6px 12px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex: 1;
+
+  &.view-data-btn {
+    background: #10b981;
+
+    &:hover {
+      background: #059669;
+    }
+
+    &:active {
+      background: #047857;
+    }
+  }
+
+  &.view-artifacts-btn {
+    background: #8b5cf6;
+
+    &:hover {
+      background: #7c3aed;
+    }
+
+    &:active {
+      background: #6d28d9;
+    }
+  }
+
+  &.download-btn {
+    background: #3b82f6;
+
+    &:hover {
+      background: #2563eb;
+    }
+
+    &:active {
+      background: #1d4ed8;
+    }
+  }
+}
+
+
+// Override React Flow defaults
+.react-flow__node {
+  cursor: pointer;
+
+  // When the inner node is expanded, bump up the wrapper's z-index
+  &:has(.provenance-node.expanded) {
+    z-index: 99999 !important;
+  }
+
+  &.selected {
+    z-index: 1000 !important;
+  }
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+  border: none;
+}
+
+.react-flow__edge {
+  .react-flow__edge-path {
+    stroke: #1e293b;
+    stroke-width: 2px;
+  }
+}
+
+// Arrow markers (arrowheads)
+.react-flow__arrowhead {
+  fill: #1e293b;
+}
+
+marker path {
+  fill: #1e293b;
+  stroke: #1e293b;
+}
+
+.react-flow__controls {
+  display: none;
+}
+
+.react-flow__attribution {
+  display: none;
+}

@@ -1,0 +1,25 @@
+/**
+ * Shared styling constants for sidebar collapsible components
+ * (ProjectsPanel, RunTree, ArtifactsPanel)
+ */
+
+:root {
+  /* Font family for sidebar text (file names, run names, project names) */
+  --sidebar-font-family: inherit;
+
+  /* Font sizes */
+  --sidebar-font-size-header: 0.875rem;
+  --sidebar-font-size-item: 0.875rem;
+  --sidebar-font-size-button: 0.875rem;
+  --sidebar-font-size-metadata: 13px;
+
+  /* Font weights */
+  --sidebar-font-weight-header: 500;
+  --sidebar-font-weight-item: 400;
+  --sidebar-font-weight-button: 500;
+
+  /* Spacing */
+  --sidebar-padding: 6px 8px;
+  --sidebar-gap: 6px;
+  --sidebar-indent: 16px;
+}

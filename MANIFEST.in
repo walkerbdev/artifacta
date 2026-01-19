@@ -1,0 +1,16 @@
+# Include the pre-built UI assets (exclude source maps - dev only)
+recursive-include dist *
+exclude dist/assets/*.map
+global-exclude *.map
+global-exclude *.whl
+global-exclude *.tar.gz
+include index.html
+
+# Include documentation
+include README.md
+include LICENSE
+include CONTRIBUTING.md
+
+# Include package data
+recursive-include artifacta *.py
+recursive-include tracking-server *.py

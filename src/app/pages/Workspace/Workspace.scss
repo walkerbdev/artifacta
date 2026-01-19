@@ -1,0 +1,23 @@
+// Main Workspace SCSS - Orchestrator File
+// This file imports all component-specific stylesheets
+
+// Base workspace container and layout styles
+@import './Workspace_base.scss';
+
+// Section-specific styles (Problem Type, Dataset, Features, Loss Function, Architecture)
+@import './Workspace_sections.scss';
+
+// Playback controls and metrics
+@import './Workspace_playback.scss';
+
+// Visualization and chart styles
+@import './Workspace_charts.scss';
+
+// Network visualization and architecture styles
+@import './Workspace_network.scss';
+
+// Economic dashboard styles
+@import './Workspace_dashboard.scss';
+
+// Responsive design and media queries
+@import './Workspace_responsive.scss';

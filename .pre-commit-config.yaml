@@ -1,0 +1,101 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.11
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # Mypy - Static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports]
+        files: ^tracking-server/
+
+  # Pydocstyle - Docstring style checker
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args:
+          - --convention=google
+        files: ^(artifacta|tracking-server)/
+
+  # ESLint - JavaScript/React linter
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.17.0
+    hooks:
+      - id: eslint
+        files: \.[jt]sx?$
+        types: [file]
+        additional_dependencies:
+          - eslint@9.17.0
+          - eslint-plugin-react@7.37.2
+
+  # Knip - Find unused files, exports, and dependencies (JavaScript/TypeScript)
+  - repo: local
+    hooks:
+      - id: knip
+        name: knip
+        entry: npx knip --no-exit-code
+        language: system
+        pass_filenames: false
+        files: \.[jt]sx?$
+      - id: depcheck
+        name: depcheck - unused npm dependencies
+        entry: npx depcheck --ignore-dirs=dist,node_modules,.git
+        language: system
+        pass_filenames: false
+        files: package\.json
+
+  # Vulture - Find dead Python code
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.13
+    hooks:
+      - id: vulture
+        args:
+          - --min-confidence=80
+          - --exclude=tests/fixtures,tests/examples
+          - artifacta/
+          - tracking-server/
+          - tests/
+        pass_filenames: false
+
+  # Codespell - Catch typos in code, comments, and documentation
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args:
+          - --ignore-words-list=crate,ser,fpr,currentY,finalY
+          - --skip="*.json,*.lock,*.svg,*.css,*.map"
+
+  # Detect-secrets - Prevent committing secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: mixed-line-ending

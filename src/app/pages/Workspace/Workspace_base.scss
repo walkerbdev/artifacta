@@ -1,0 +1,123 @@
+// Base Workspace Container and Layout Styles
+
+.app__datascience {
+  flex: 1;
+  width: 100%;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.section-subtitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.ml-capabilities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.capability-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  h4 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #007BFF;
+    margin-bottom: 0.8rem;
+  }
+
+  p {
+    font-size: 1rem;
+    color: #666;
+    line-height: 1.6;
+  }
+}
+
+// Data Studio - Main Container Styles
+// Prevent body/html scrolling to ensure only .viz-workspace-main scrolls
+:root {
+  overflow: hidden;
+}
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.viz-workspace-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.viz-workspace-main {
+  flex: 1;
+  overflow: hidden;
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.viz-workspace {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2rem;
+}
+.viz-workspace {
+  width: 100%;
+  max-width: 1600px;
+  margin: 3rem auto;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+// Section Header (shared by multiple sections)
+.viz-section-header {
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+}
+
+// Main Content Area
+.viz-main {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  background: white;
+}

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "artifacta"
+version = "0.1.0"
+description = "Experiment tracking for Artifacta"
+requires-python = ">=3.8"
+dependencies = [
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+gpu = ["pynvml>=11.5.0"]
+dev = ["pytest>=7.0"]
+video = ["av>=10.0.0"]
+
+[tool.setuptools]
+packages = ["artifacta"]

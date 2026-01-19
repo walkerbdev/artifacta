@@ -1,0 +1,236 @@
+.viz-draggable-viz {
+  position: relative;
+  padding: 20px 20px 10px 20px; // Reduced bottom padding
+  transition: box-shadow 0.2s ease, cursor 0.2s ease;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+
+  .viz-viz-title {
+    margin: 0 0 12px 0;
+    padding: 0 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+  }
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Wrapper to maintain space when component is dragged
+  &-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  &.drag-enabled {
+    position: absolute !important;
+    cursor: grab;
+    user-select: none;
+    // left, top, width, height are set via inline styles
+    display: block;
+    z-index: 1000;
+    pointer-events: auto;
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(138, 43, 226, 0.15);
+    }
+  }
+
+  .drag-handle {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #9ca3af;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &.drag-enabled .drag-handle {
+    opacity: 1;
+  }
+
+  &.drag-enabled:hover .drag-handle {
+    background: #f3f4f6;
+    color: #8a2be2;
+    border-color: #d1d5db;
+  }
+
+  .viz-viz-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #9ca3af;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    opacity: 0;
+
+    &:hover {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &:hover .viz-viz-close-btn {
+    opacity: 1;
+  }
+
+  // Export menu button (three dots) - positioned on left side (opposite of X button)
+  .viz-viz-export-menu-container {
+    position: absolute;
+    top: 8px;
+    left: 8px; // Opposite side from close button
+    z-index: 10;
+  }
+
+  .viz-viz-export-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #9ca3af;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    opacity: 0;
+
+    &:hover {
+      background: #f3f4f6;
+      color: #6366f1;
+      border-color: #d1d5db;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &:hover .viz-viz-export-btn {
+    opacity: 1;
+  }
+
+  // Export dropdown menu
+  .viz-export-dropdown {
+    position: absolute;
+    top: 36px;
+    left: 0; // Align with left side
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    overflow: hidden;
+    z-index: 1000;
+
+    button {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      background: white;
+      color: #374151;
+      text-align: left;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #f3f4f6;
+      }
+
+      &:active {
+        background: #e5e7eb;
+      }
+    }
+  }
+
+  // Top left buttons container (settings + info)
+  .viz-viz-top-left-btns {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .viz-draggable-viz {
+    &:hover {
+      transform: translateY(-3px);
+    }
+
+    .viz-viz-close-btn {
+      width: 26px;
+      height: 26px;
+      font-size: 14px;
+      top: 6px;
+      right: 6px;
+    }
+
+    .drag-handle {
+      width: 28px;
+      height: 28px;
+      top: 6px;
+      left: 6px;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}

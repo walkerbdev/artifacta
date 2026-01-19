@@ -1,0 +1,78 @@
+.collapsible-section-wrapper {
+  position: relative;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: white;
+  min-height: 44px;
+
+  .collapsible-section-title-bar {
+    padding: 0.625rem 1.5rem;
+    padding-right: 3rem;
+    padding-left: 3rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #333;
+      text-align: center;
+    }
+  }
+
+  .collapsible-section-info-button {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10;
+
+    // Make info button always visible in collapsible section
+    .viz-info-icon-btn {
+      opacity: 1;
+    }
+  }
+
+  .collapsible-section-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+
+    &:hover {
+      background: #f3f4f6;
+      color: #667eea;
+      border-color: #d1d5db;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+.collapsible-section-content {
+  padding-top: 0.5rem;
+}
+
+// Larger titles for sections outside the sidebar
+.viz-workspace-main {
+  .collapsible-section-wrapper {
+    .collapsible-section-title-bar {
+      h3 {
+        font-size: 1.25rem;
+      }
+    }
+  }
+}

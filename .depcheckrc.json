@@ -1,0 +1,10 @@
+{
+  "ignores": [
+    "knip"
+  ],
+  "ignore-dirs": [
+    "dist",
+    "node_modules",
+    ".git"
+  ]
+}

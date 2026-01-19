@@ -1,0 +1,327 @@
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useCanvasTooltip, findNearestSeriesPoint } from '../../../hooks/useCanvasTooltip';
+import PlotTooltip from '../shared/PlotTooltip';
+
+/**
+ * Line Plot for Series data
+ * Displays multiple time series on a single chart
+ * Expects data format: { xLabel: string, datasets: [{label, data: [{x, y}]}] }
+ */
+const LinePlot = ({ data, title }) => {
+  const canvasRef = useRef(null);
+  const plotAreaRef = useRef(null);
+  const seriesDataRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      if (!data || !data.datasets || !canvasRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      const { datasets, xLabel = 'X' } = data;
+
+      // Set canvas size
+      const width = canvas.clientWidth || 600;
+      const height = canvas.clientHeight || 450;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const padding = { top: 50, right: 20, bottom: 130, left: 80 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+
+      // Store plot area for tooltip
+      plotAreaRef.current = {
+        left: padding.left,
+        top: padding.top,
+        width: chartWidth,
+        height: chartHeight,
+      };
+
+      // Clear canvas
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Collect all points for axis scaling
+      const allPoints = datasets.flatMap(ds => ds.data || []);
+      if (allPoints.length === 0) return;
+
+      // Check if x-axis is categorical (strings) or numeric
+      const firstX = allPoints[0].x;
+      const isCategorical = typeof firstX === 'string' || isNaN(Number(firstX));
+
+      let xMin, xMax, xLabels;
+      if (isCategorical) {
+        // For categorical x-axis, extract unique labels and map to indices
+        xLabels = [...new Set(allPoints.map(p => p.x))];
+        xMin = 0;
+        xMax = xLabels.length - 1;
+
+        // Remap x values to numeric indices for plotting
+        datasets.forEach(ds => {
+          ds.data = ds.data.map(point => ({
+            ...point,
+            xNumeric: xLabels.indexOf(point.x),
+            xOriginal: point.x
+          }));
+        });
+      } else {
+        // Numeric x-axis
+        const xValues = allPoints.map(p => p.x).filter(v => v != null && !isNaN(v));
+        xMin = Math.min(...xValues);
+        xMax = Math.max(...xValues);
+      }
+
+      const yValues = allPoints.map(p => p.y).filter(v => v != null && !isNaN(v));
+      if (yValues.length === 0) return;
+
+      const yMin = Math.min(...yValues);
+      const yMax = Math.max(...yValues);
+
+      // Add 5% padding to y-axis
+      const yRange = yMax - yMin;
+      const yPadding = yRange * 0.05;
+      const yAxisMin = yMin - yPadding;
+      const yAxisMax = yMax + yPadding;
+
+      // Draw axes
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, padding.top);
+      ctx.lineTo(padding.left, height - padding.bottom);
+      ctx.lineTo(width - padding.right, height - padding.bottom);
+      ctx.stroke();
+
+      // Draw grid lines
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      const numGridLines = 5;
+      for (let i = 0; i <= numGridLines; i++) {
+        const y = padding.top + (i / numGridLines) * chartHeight;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        // Y-axis labels
+        const value = yAxisMax - (i / numGridLines) * (yAxisMax - yAxisMin);
+        ctx.fillStyle = '#666';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(value.toFixed(2), padding.left - 5, y + 4);
+      }
+
+      // Draw x-axis tick labels with smart staggering to prevent overlap
+      ctx.fillStyle = '#666';
+      ctx.font = '11px Arial';
+
+      const labelPositions = [];
+      const baseY = height - padding.bottom + 15;
+      const buffer = 10; // minimum gap between labels (increased)
+      const staggerOffset = 25; // vertical offset for staggering (increased)
+      let maxLabelHeight = 0; // Track maximum vertical space used by labels
+
+      if (isCategorical && xLabels) {
+        // Draw categorical labels
+        xLabels.forEach((label, i) => {
+          const x = xLabels.length > 1
+            ? padding.left + (i / (xLabels.length - 1)) * chartWidth
+            : padding.left + chartWidth / 2;
+
+          // Measure label width
+          const labelWidth = ctx.measureText(label).width;
+          const horizontalFootprint = labelWidth * Math.cos(Math.PI / 4);
+          const verticalHeight = labelWidth * Math.sin(Math.PI / 4);
+
+          // Determine y position based on overlap with previous label
+          let yOffset = 0;
+          if (labelPositions.length > 0) {
+            const prevLabel = labelPositions[labelPositions.length - 1];
+            const gap = x - prevLabel.x;
+            const minRequired = horizontalFootprint + prevLabel.footprint + buffer;
+
+            if (gap < minRequired) {
+              yOffset = prevLabel.yOffset === 0 ? staggerOffset : 0;
+            }
+          }
+
+          labelPositions.push({ x, yOffset, footprint: horizontalFootprint });
+          maxLabelHeight = Math.max(maxLabelHeight, verticalHeight + yOffset);
+
+          // Draw the label
+          ctx.save();
+          ctx.translate(x, baseY + yOffset);
+          ctx.rotate(-Math.PI / 4);
+          ctx.textAlign = 'right';
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        });
+      } else {
+        // Draw numeric tick labels
+        const numXTicks = Math.min(10, Math.max(2, allPoints.length));
+        for (let i = 0; i < numXTicks; i++) {
+          const ratio = numXTicks > 1 ? i / (numXTicks - 1) : 0.5;
+          const xVal = xMin + ratio * (xMax - xMin);
+          const x = padding.left + ratio * chartWidth;
+          const label = xVal.toFixed(1);
+
+          // Measure label width
+          const labelWidth = ctx.measureText(label).width;
+          const horizontalFootprint = labelWidth * Math.cos(Math.PI / 4);
+          const verticalHeight = labelWidth * Math.sin(Math.PI / 4);
+
+          // Determine y position based on overlap with previous label
+          let yOffset = 0;
+          if (labelPositions.length > 0) {
+            const prevLabel = labelPositions[labelPositions.length - 1];
+            const gap = x - prevLabel.x;
+            const minRequired = horizontalFootprint + prevLabel.footprint + buffer;
+
+            if (gap < minRequired) {
+              yOffset = prevLabel.yOffset === 0 ? staggerOffset : 0;
+            }
+          }
+
+          labelPositions.push({ x, yOffset, footprint: horizontalFootprint });
+          maxLabelHeight = Math.max(maxLabelHeight, verticalHeight + yOffset);
+
+          // Draw the label
+          ctx.save();
+          ctx.translate(x, baseY + yOffset);
+          ctx.rotate(-Math.PI / 4);
+          ctx.textAlign = 'right';
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      // Y-axis label
+      ctx.save();
+      ctx.translate(20, height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 12px Arial';
+      ctx.fillText('Value', 0, 0);
+      ctx.restore();
+
+      // Color palette
+      const colors = [
+        '#4A90E2', // blue
+        '#E94B3C', // red
+        '#6BCF7F', // green
+        '#F5A623', // orange
+        '#9B59B6', // purple
+        '#1ABC9C', // teal
+        '#E67E22', // dark orange
+        '#34495E'  // dark gray
+      ];
+
+      // Draw each dataset
+      datasets.forEach((dataset, datasetIdx) => {
+        const { data: points } = dataset;
+        if (!points || points.length === 0) return;
+
+        const color = colors[datasetIdx % colors.length];
+
+        // Draw line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        points.forEach((point, i) => {
+          const xValue = isCategorical ? point.xNumeric : point.x;
+          const x = padding.left + ((xValue - xMin) / (xMax - xMin)) * chartWidth;
+          const y = padding.top + chartHeight - ((point.y - yAxisMin) / (yAxisMax - yAxisMin)) * chartHeight;
+
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+
+        ctx.stroke();
+
+        // Draw points
+        ctx.fillStyle = color;
+        points.forEach(point => {
+          const xValue = isCategorical ? point.xNumeric : point.x;
+          const x = padding.left + ((xValue - xMin) / (xMax - xMin)) * chartWidth;
+          const y = padding.top + chartHeight - ((point.y - yAxisMin) / (yAxisMax - yAxisMin)) * chartHeight;
+
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+
+      // Draw legend below chart (dynamically positioned based on x-axis label height)
+      const legendY = height - padding.bottom + maxLabelHeight + 35; // 35px buffer below labels
+      let legendX = padding.left;
+      const itemSpacing = 15;
+
+      datasets.forEach((dataset, i) => {
+        const color = colors[i % colors.length];
+
+        // Legend line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(legendX, legendY);
+        ctx.lineTo(legendX + 30, legendY);
+        ctx.stroke();
+
+        // Legend text
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(dataset.label, legendX + 35, legendY + 4);
+
+        // Move to next legend item position
+        const textWidth = ctx.measureText(dataset.label).width;
+        legendX += 35 + textWidth + itemSpacing;
+      });
+
+      // X-axis label (positioned below legend)
+      const xLabelY = legendY + 25;
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(xLabel, width / 2, xLabelY);
+
+      // Store data for tooltip
+      seriesDataRef.current = {
+        datasets,
+        xMin,
+        xMax,
+        yMin: yAxisMin,
+        yMax: yAxisMax,
+        isCategorical,
+        xLabels,
+        xLabel,
+      };
+
+      // Title is rendered by DraggableVisualization wrapper
+    } catch (error) {
+      console.error('[LinePlot] Error rendering:', error, 'Data:', data);
+    }
+  }, [data, title]);
+
+  return (
+    <div style={{ padding: '10px' }}>
+      <canvas
+        ref={canvasRef}
+        className="nn-canvas-comparison-scatter"
+        width={600}
+        height={450}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+      />
+    </div>
+  );
+};
+
+export default LinePlot;

@@ -1,0 +1,22 @@
+# Training configuration for ResNet on CIFAR-10
+model:
+  architecture: resnet50
+  num_classes: 10
+  pretrained: true
+
+training:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  optimizer: adam
+  weight_decay: 0.0001
+
+data:
+  dataset: cifar10
+  num_workers: 2
+  augmentation: true
+
+logging:
+  log_interval: 10
+  save_checkpoints: true
+  checkpoint_dir: checkpoints

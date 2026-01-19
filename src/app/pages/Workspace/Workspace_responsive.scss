@@ -1,0 +1,68 @@
+// Responsive Design and Media Queries
+
+@media screen and (max-width: 1200px) {
+  .viz-main {
+    grid-template-columns: 1fr;
+  }
+
+  .viz-controls {
+    flex-direction: column;
+    align-items: stretch;
+
+    .viz-control-section {
+      justify-content: space-between;
+      width: 100%;
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .viz-workspace {
+    display: none;
+  }
+
+  .viz-controls {
+    padding: 1rem;
+    gap: 1rem;
+
+    .viz-control-section {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  }
+
+  .viz-main {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .viz-features-panel {
+    .viz-features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .ml-capabilities {
+    grid-template-columns: 1fr;
+  }
+
+  // Economic Dashboard responsive
+  .economic-dashboard {
+    margin: 2rem 1rem;
+    padding: 1.5rem;
+
+    .dashboard-title {
+      font-size: 1.5rem;
+    }
+
+    .charts-container {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-card {
+      .metric-value {
+        font-size: 2.5rem;
+      }
+    }
+  }
+}

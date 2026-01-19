@@ -1,0 +1,174 @@
+// API key setup form and container
+.chat-tab-setup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+
+.setup-container {
+  max-width: 520px;
+  width: 100%;
+  padding: 2.5rem;
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: #666;
+    line-height: 1.6;
+    font-size: 1rem;
+  }
+
+  .setup-note {
+    font-size: 0.9rem;
+    color: #999;
+    margin-bottom: 1.5rem;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.model-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+}
+
+.field-help {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.api-key-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: 'Monaco', 'Courier New', monospace;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+}
+
+.setup-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #007BFF;
+  color: white;
+
+  &:hover {
+    background: #0056b3;
+  }
+
+  &:active {
+    background: #004085;
+  }
+}
+
+.btn-secondary {
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+
+  &:hover {
+    background: #f8f9fa;
+    border-color: #007BFF;
+  }
+}
+
+.setup-help {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e8e8e8;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  a {
+    color: #007BFF;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

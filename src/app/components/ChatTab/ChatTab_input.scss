@@ -1,0 +1,72 @@
+// Input area, textarea, and send button
+.chat-input-container {
+  border-top: 1px solid #e8e8e8;
+  padding: 2rem 3rem;
+  display: flex;
+  gap: 1rem;
+  background: white;
+  flex-shrink: 0;
+  align-items: stretch;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.chat-input-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  align-self: stretch;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1.5;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.12);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+
+  &:disabled {
+    background: #f8f9fa;
+    cursor: not-allowed;
+  }
+}
+
+.chat-send-btn {
+  padding: 1rem 1.5rem;
+  background: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #0056b3;
+  }
+
+  &:active:not(:disabled) {
+    background: #004085;
+  }
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+}

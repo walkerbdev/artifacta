@@ -1,0 +1,42 @@
+// Main container and base layout
+.chat-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: white;
+  position: relative;
+  min-height: 0;
+  max-height: 100%;
+}
+
+// Resize handle between messages and input
+.chat-resize-handle {
+  height: 1px;
+  background: #e5e7eb;
+  cursor: ns-resize;
+  position: relative;
+  z-index: 10;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #9ca3af;
+  }
+
+  &:active {
+    background: #6366f1;
+  }
+}
+
+// Global class to prevent text selection while resizing
+body.resizing-chat {
+  user-select: none !important;
+  cursor: ns-resize !important;
+
+  * {
+    user-select: none !important;
+  }
+
+  .chat-resize-handle {
+    background: #6366f1 !important;
+  }
+}

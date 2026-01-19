@@ -1,0 +1,236 @@
+.run-filter {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
+
+  .filter-header {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+
+    .filter-search {
+      min-width: 150px;
+
+      .search-input {
+        width: 100%;
+        padding: 8px 12px;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #2d3748;
+        font-size: 14px;
+        box-sizing: border-box;
+
+        &:focus {
+          outline: none;
+          border-color: #4299e1;
+        }
+
+        &::placeholder {
+          color: #a0aec0;
+        }
+      }
+    }
+
+    .toggle-filters-btn {
+      padding: 8px 12px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      color: #2d3748;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      &:hover {
+        background: #edf2f7;
+        border-color: #cbd5e0;
+      }
+
+      .active-filter-count {
+        color: #4299e1;
+        font-weight: 600;
+      }
+    }
+
+    .clear-filters-btn {
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid #fc8181;
+      border-radius: 6px;
+      color: #fc8181;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+
+      &:hover {
+        background: #fff5f5;
+      }
+    }
+  }
+
+  .filter-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .filter-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .filter-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .filter-select {
+        padding: 8px 12px;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #2d3748;
+        font-size: 14px;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: #4299e1;
+        }
+      }
+
+      .date-range-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        span {
+          color: #718096;
+          font-size: 13px;
+        }
+
+        .date-input {
+          flex: 1;
+          padding: 8px 12px;
+          background: #f7fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          color: #2d3748;
+          font-size: 14px;
+
+          &:focus {
+            outline: none;
+            border-color: #4299e1;
+          }
+        }
+      }
+
+      .add-metric-filter {
+        padding: 8px 12px;
+        background: #f7fafc;
+        border: 1px dashed #cbd5e0;
+        border-radius: 6px;
+        color: #718096;
+        font-size: 14px;
+        cursor: pointer;
+
+        &:focus {
+          outline: none;
+          border-color: #4299e1;
+          border-style: solid;
+        }
+
+        option:first-child {
+          color: #a0aec0;
+        }
+      }
+
+      .active-metric-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 8px;
+
+        .metric-filter-row {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 10px;
+          background: #f7fafc;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+
+          .metric-filter-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4299e1;
+          }
+
+          .metric-filter-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            span {
+              color: #718096;
+              font-size: 13px;
+            }
+
+            .threshold-input {
+              flex: 1;
+              padding: 6px 10px;
+              background: white;
+              border: 1px solid #e2e8f0;
+              border-radius: 4px;
+              color: #2d3748;
+              font-size: 13px;
+
+              &:focus {
+                outline: none;
+                border-color: #4299e1;
+              }
+
+              &::placeholder {
+                color: #cbd5e0;
+              }
+            }
+
+            .remove-filter-btn {
+              padding: 4px 8px;
+              background: transparent;
+              border: 1px solid #fc8181;
+              border-radius: 4px;
+              color: #fc8181;
+              cursor: pointer;
+              font-size: 16px;
+              font-weight: bold;
+              line-height: 1;
+              min-width: 28px;
+
+              &:hover {
+                background: #fff5f5;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

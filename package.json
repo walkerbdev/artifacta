@@ -1,0 +1,71 @@
+{
+  "name": "artifacta",
+  "version": "0.1.0",
+  "description": "Universal experiment and artifact tracking — gain insights and optimize models with confidence",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@aarkue/tiptap-math-extension": "^1.4.0",
+    "@tiptap/core": "^3.15.3",
+    "@tiptap/extension-image": "^3.15.3",
+    "@tiptap/extension-link": "^3.15.3",
+    "@tiptap/extension-table": "^3.15.3",
+    "@tiptap/extension-table-cell": "^3.15.3",
+    "@tiptap/extension-table-header": "^3.15.3",
+    "@tiptap/extension-table-row": "^3.15.3",
+    "@tiptap/extension-task-item": "^3.15.3",
+    "@tiptap/extension-task-list": "^3.15.3",
+    "@tiptap/react": "^3.15.3",
+    "@tiptap/starter-kit": "^3.15.3",
+    "framer-motion": "^11.11.17",
+    "katex": "^0.16.27",
+    "papaparse": "^5.5.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "reactflow": "^11.11.4",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^24.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "eslint": "^9.14.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "knip": "^5.82.1",
+    "sass": "^1.97.2",
+    "sass-embedded": "^1.97.2",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  },
+  "keywords": [
+    "data-visualization",
+    "experiment-tracking",
+    "metrics",
+    "visualization",
+    "interactive",
+    "analytics",
+    "react"
+  ],
+  "author": "Brandon Walker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/artifacta.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/artifacta/issues"
+  },
+  "license": "MIT"
+}

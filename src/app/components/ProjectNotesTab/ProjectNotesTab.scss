@@ -1,0 +1,590 @@
+.project-notes-tab {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+}
+
+.project-notes-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.notes-main-fullwidth {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  overflow: hidden;
+}
+
+.notes-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Header with title and actions */
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+
+  .note-title-input {
+    flex: 1;
+    font-size: 28px;
+    font-weight: 600;
+    border: none;
+    outline: none;
+    padding: 8px 0;
+    color: #111827;
+
+    &::placeholder {
+      color: #d1d5db;
+    }
+  }
+
+  .note-actions {
+    display: flex;
+    gap: 8px;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      font-size: 18px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #6b7280;
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-save {
+      color: #10b981;
+      border-color: #d1fae5;
+
+      &:hover:not(:disabled) {
+        background: #d1fae5;
+        border-color: #a7f3d0;
+      }
+
+      &:active:not(:disabled) {
+        background: #a7f3d0;
+      }
+    }
+
+    .btn-delete-note {
+      color: #ef4444;
+      border-color: #fecaca;
+
+      &:hover {
+        background: #fef2f2;
+        border-color: #fca5a5;
+      }
+
+      &:active {
+        background: #fee2e2;
+      }
+    }
+  }
+}
+
+/* TipTap editor container */
+.tiptap-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: white;
+
+  .editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+    flex-wrap: wrap;
+
+    .toolbar-group {
+      display: flex;
+      gap: 2px;
+    }
+
+    .heading-dropdown-wrapper,
+    .table-dropdown-wrapper {
+      position: relative;
+
+      .heading-dropdown-menu,
+      .table-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 4px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 100;
+        min-width: 160px;
+        padding: 4px;
+
+        button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 8px 12px;
+          border: none;
+          border-radius: 4px;
+          background: transparent;
+          color: #374151;
+          font-size: 14px;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.15s;
+
+          svg {
+            font-size: 16px;
+          }
+
+          &:hover {
+            background: #f3f4f6;
+            color: #111827;
+          }
+
+          &:active {
+            background: #e5e7eb;
+          }
+
+          &.active {
+            background: #dbeafe;
+            color: #1e40af;
+          }
+        }
+      }
+    }
+
+    .toolbar-separator {
+      width: 1px;
+      height: 24px;
+      background: #e5e7eb;
+      margin: 0 4px;
+    }
+
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      svg {
+        font-size: 18px;
+      }
+
+      &:hover {
+        background: #f3f4f6;
+        color: #111827;
+        border-color: #e5e7eb;
+      }
+
+      &:active {
+        background: #e5e7eb;
+      }
+
+      &.active {
+        background: #dbeafe;
+        color: #1e40af;
+        border-color: #bfdbfe;
+
+        &:hover {
+          background: #bfdbfe;
+          border-color: #93c5fd;
+        }
+      }
+    }
+  }
+
+  .ProseMirror {
+    outline: none;
+    min-height: 400px;
+    padding: 24px;
+
+    /* Table styling */
+    table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: auto;
+      margin: 16px 0;
+      border: 1px solid #e5e7eb;
+
+      thead {
+        background: #f9fafb;
+
+        tr th {
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 600;
+          color: #111827;
+          border: 1px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
+          font-size: 14px;
+          min-width: 100px;
+          position: relative;
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid #e5e7eb;
+
+          &:hover {
+            background: #f9fafb;
+          }
+
+          td {
+            padding: 12px 16px;
+            color: #374151;
+            font-size: 14px;
+            border: 1px solid #e5e7eb;
+            min-width: 100px;
+            position: relative;
+          }
+        }
+      }
+
+      th, td {
+        border: 1px solid #e5e7eb;
+        vertical-align: top;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+    }
+
+    /* Column resize handle (TipTap creates this automatically) */
+    .column-resize-handle {
+      position: absolute;
+      right: -2px;
+      top: 0;
+      bottom: -2px;
+      width: 4px;
+      background-color: #3b82f6;
+      cursor: col-resize;
+      pointer-events: all;
+      z-index: 20;
+    }
+
+    /* Active resize state */
+    .selectedCell:after {
+      background-color: #dbeafe;
+      content: '';
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      position: absolute;
+      z-index: 2;
+    }
+
+    /* Inline code styling (like Slack) */
+    code {
+      background: #f1f5f9;
+      color: #e01e5a;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+      font-size: 85%;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Code block styling (like Slack/GitHub dark) */
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 16px 0;
+      border: 1px solid #2d2d2d;
+      font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+
+      code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font-size: inherit;
+        border: none;
+      }
+    }
+
+    /* Blockquote styling */
+    blockquote {
+      border-left: 4px solid #3b82f6;
+      padding-left: 16px;
+      margin: 16px 0;
+      color: #6b7280;
+      font-style: italic;
+      background: #f9fafb;
+      padding: 12px 16px;
+      border-radius: 4px;
+    }
+
+    /* Horizontal rule styling */
+    hr {
+      border: none;
+      border-top: 2px solid #e5e7eb;
+      margin: 24px 0;
+    }
+
+    /* Inline file attachment card */
+    .inline-file-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 4px 0;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: default;
+      user-select: none;
+
+      .file-icon {
+        font-size: 18px;
+      }
+
+      .file-name {
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .file-size {
+        color: #6b7280;
+        font-size: 12px;
+      }
+
+      &:hover {
+        background: #e5e7eb;
+      }
+    }
+
+    /* Inline file preview (PDF, video, audio) */
+    .inline-file-preview {
+      display: block;
+      margin: 16px 0;
+      user-select: none;
+
+      iframe, video, audio {
+        display: block;
+        width: 100%;
+      }
+
+      .file-caption {
+        margin-top: 8px;
+        padding: 6px 12px;
+        background: #f9fafb;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #6b7280;
+        text-align: center;
+      }
+    }
+
+    /* Link styling */
+    a {
+      color: #3b82f6;
+      text-decoration: underline;
+      cursor: pointer;
+
+      &:hover {
+        color: #2563eb;
+      }
+    }
+
+    /* Math formula styling */
+    .math-inline, .math-display {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .math-display {
+      display: block;
+      margin: 12px 0;
+      padding: 12px;
+      text-align: center;
+    }
+
+    /* Image styling - constrain size and make responsive */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 16px 0;
+      display: block;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+/* Attachments section */
+.attachments-section {
+  border-top: 1px solid #e5e7eb;
+  padding: 24px;
+  background: #fafafa;
+
+  .attachments-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .attachments-count {
+      background: #e5e7eb;
+      color: #6b7280;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  .dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    margin-bottom: 16px;
+
+    &:hover {
+      border-color: #667eea;
+      background: #f9fafb;
+    }
+
+    &.active {
+      border-color: #667eea;
+      background: #eef2ff;
+    }
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  }
+
+  .attachments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #d1d5db;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .attachment-name {
+      flex: 1;
+      font-size: 14px;
+      color: #111827;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .attachment-size {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .attachment-actions {
+      display: flex;
+      gap: 4px;
+
+      a, button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+
+        &:hover {
+          background: #f3f4f6;
+          color: #111827;
+        }
+      }
+
+      .btn-delete-att:hover {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+    }
+  }
+}

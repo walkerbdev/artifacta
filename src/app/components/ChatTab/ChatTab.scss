@@ -1,0 +1,9 @@
+// ChatTab component styles - orchestrator file
+// Import all component-specific stylesheets
+
+@import './ChatTab_base.scss';
+@import './ChatTab_settings.scss';
+@import './ChatTab_messages.scss';
+@import './ChatTab_input.scss';
+@import './ChatTab_states.scss';
+@import './ChatTab_setup.scss';
