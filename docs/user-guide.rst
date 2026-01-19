@@ -1,6 +1,32 @@
 Quick Start Guide
 =================
 
+The Problem
+-----------
+
+Modern data science and machine learning workflows involve countless experiments—tweaking hyperparameters, adjusting data preprocessing, testing different architectures, updating dependencies, modifying code. **Every change produces different results**, but tracking and comparing these variations manually becomes overwhelming:
+
+- 📋 Which parameters, environment, or code version led to that breakthrough result last week?
+- 🔍 How does changing the learning rate affect convergence across multiple runs?
+- 📊 What's the actual performance difference between model architectures?
+- 🤔 Which preprocessing steps improved accuracy by 2%?
+- 🔧 Did upgrading that dependency break model performance?
+- 💻 What code changes caused the regression?
+
+Without systematic tracking of **parameters, metrics, code changes, dependencies, and environment**, you're flying blind—relying on scattered notes, terminal output, and memory. **Artifacta solves this** by automatically capturing experiments, configurations, code versions, and artifacts in one place with intelligent visualization.
+
+Ecosystem & Alternatives
+------------------------
+
+Artifacta is part of a growing ecosystem of experiment tracking tools. Popular alternatives include:
+
+- `MLflow <https://mlflow.org/>`_ - Open-source platform from Databricks for ML lifecycle management
+- `Weights & Biases <https://wandb.ai/>`_ - Cloud-first experiment tracking with team collaboration features
+- `Neptune.ai <https://neptune.ai/>`_ - Metadata store for MLOps with extensive integrations
+- `Comet ML <https://www.comet.com/>`_ - ML platform with experiment tracking and model production monitoring
+
+**Why Artifacta?** We focus on **automatic visualization discovery**, **domain-agnostic tracking** (not just ML), and **simple self-hosting** with a pre-built UI. No heavy dependencies, no mandatory cloud services—just install and start tracking.
+
 Installation
 ------------
 
