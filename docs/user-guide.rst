@@ -4,21 +4,11 @@ Quick Start Guide
 Installation
 ------------
 
-Standard Installation
-~~~~~~~~~~~~~~~~~~~~~
-
 **Prerequisites:** Python 3.9+
-
-For most users, this is the recommended installation method:
 
 .. code-block:: bash
 
-   # Clone the repository
-   git clone https://github.com/walkerbdev/artifacta.git
-   cd artifacta
-
-   # Install Python package with bundled UI
-   pip install -e .
+   pip install artifacta
 
 .. note::
    The UI is pre-built and bundled with the package. No Node.js required.
@@ -28,7 +18,7 @@ Development Installation
 
 **Prerequisites:** Python 3.9+, Node.js 16+
 
-For contributors who want to modify the UI:
+For contributors who want to modify the source code or UI:
 
 .. code-block:: bash
 
@@ -39,7 +29,7 @@ For contributors who want to modify the UI:
    # Build UI from source
    npm install && npm run build
 
-   # Install Python package
+   # Install Python package in editable mode
    pip install -e .
 
 To run examples or tests, install with optional dependencies:

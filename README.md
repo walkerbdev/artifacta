@@ -43,22 +43,17 @@ Browse and preview datasets, models, code, images, videos, and documents with bu
 
 ### Installation
 
-#### Standard Installation
-
 **Prerequisites:** Python 3.9+
 
 ```bash
-# Clone the repository
-git clone https://github.com/walkerbdev/artifacta.git
-cd artifacta
-
-# Install Python package
-pip install -e .
+pip install artifacta
 ```
 
-**Note:** The UI is pre-built and bundled. No Node.js required.
+That's it! The UI is pre-built and bundled. No Node.js required.
 
 #### Development Installation
+
+If you want to contribute or modify the source:
 
 **Prerequisites:** Python 3.9+, Node.js 16+
 
@@ -70,7 +65,7 @@ cd artifacta
 # Build UI from source
 npm install && npm run build
 
-# Install Python package
+# Install Python package in editable mode
 pip install -e .
 ```
 
