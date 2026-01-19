@@ -12,6 +12,34 @@
 
 ---
 
+## 🎯 The Problem
+
+Modern data science and machine learning workflows involve countless experiments—tweaking hyperparameters, adjusting data preprocessing, testing different architectures, updating dependencies, modifying code. **Every change produces different results**, but tracking and comparing these variations manually becomes overwhelming:
+
+- 📋 Which parameters, environment, or code version led to that breakthrough result last week?
+- 🔍 How does changing the learning rate affect convergence across multiple runs?
+- 📊 What's the actual performance difference between model architectures?
+- 🤔 Which preprocessing steps improved accuracy by 2%?
+- 🔧 Did upgrading that dependency break model performance?
+- 💻 What code changes caused the regression?
+
+Without systematic tracking of **parameters, metrics, code changes, dependencies, and environment**, you're flying blind—relying on scattered notes, terminal output, and memory. **Artifacta solves this** by automatically capturing experiments, configurations, code versions, and artifacts in one place with intelligent visualization.
+
+---
+
+## 🌍 Ecosystem & Alternatives
+
+Artifacta is part of a growing ecosystem of experiment tracking tools. Popular alternatives include:
+
+- [**MLflow**](https://mlflow.org/) - Open-source platform from Databricks for ML lifecycle management
+- [**Weights & Biases**](https://wandb.ai/) - Cloud-first experiment tracking with team collaboration features
+- [**Neptune.ai**](https://neptune.ai/) - Metadata store for MLOps with extensive integrations
+- [**Comet ML**](https://www.comet.com/) - ML platform with experiment tracking and model production monitoring
+
+**Why Artifacta?** We focus on **automatic visualization discovery**, **domain-agnostic tracking** (not just ML), and **simple self-hosting** with a pre-built UI. No heavy dependencies, no mandatory cloud services—just install and start tracking.
+
+---
+
 ## ✨ Key Features
 
 - 🌐 **Domain-agnostic** - Track any experiment comparing parameters, data, and outcomes
@@ -43,22 +71,17 @@ Browse and preview datasets, models, code, images, videos, and documents with bu
 
 ### Installation
 
-#### Standard Installation
-
 **Prerequisites:** Python 3.9+
 
 ```bash
-# Clone the repository
-git clone https://github.com/walkerbdev/artifacta.git
-cd artifacta
-
-# Install Python package
-pip install -e .
+pip install artifacta
 ```
 
-**Note:** The UI is pre-built and bundled. No Node.js required.
+That's it! The UI is pre-built and bundled. No Node.js required.
 
 #### Development Installation
+
+If you want to contribute or modify the source:
 
 **Prerequisites:** Python 3.9+, Node.js 16+
 
@@ -70,7 +93,7 @@ cd artifacta
 # Build UI from source
 npm install && npm run build
 
-# Install Python package
+# Install Python package in editable mode
 pip install -e .
 ```
 
