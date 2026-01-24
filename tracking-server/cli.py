@@ -22,7 +22,7 @@ def get_project_root() -> Path:
 
 
 @click.group(invoke_without_command=True)
-@click.version_option(version="0.1.1", prog_name="artifacta")
+@click.version_option(version="0.2.0", prog_name="artifacta")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """Artifacta - Universal experiment and artifact tracking — gain insights and optimize models with confidence."""
