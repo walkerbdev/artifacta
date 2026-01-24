@@ -1,5 +1,17 @@
 # mypy: disable-error-code="misc,untyped-decorator,union-attr,no-any-return,arg-type"
-"""Health check and debug endpoints."""
+"""Health check and debug endpoints.
+
+Health check endpoint:
+- Used by HTTPEmitter to verify server availability
+- Checks database connectivity
+- Returns status for monitoring/ops
+
+Debug logs endpoint:
+- Accepts frontend console logs via POST
+- Writes to logs/ directory with timestamp
+- Enables debugging UI issues in production
+- Used by debugLogger.js when VITE_DEBUG_LOGS=true
+"""
 
 import logging
 from pathlib import Path

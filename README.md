@@ -12,46 +12,65 @@
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
 Modern data science and machine learning workflows involve countless experiments—tweaking hyperparameters, adjusting data preprocessing, testing different architectures, updating dependencies, modifying code. **Every change produces different results**, but tracking and comparing these variations manually becomes overwhelming:
 
-- 📋 Which parameters, environment, or code version led to that breakthrough result last week?
-- 🔍 How does changing the learning rate affect convergence across multiple runs?
-- 📊 What's the actual performance difference between model architectures?
-- 🤔 Which preprocessing steps improved accuracy by 2%?
-- 🔧 Did upgrading that dependency break model performance?
-- 💻 What code changes caused the regression?
+- Which parameters, environment, or code version led to that breakthrough result last week?
+- How does changing the learning rate affect convergence across multiple runs?
+- What's the actual performance difference between model architectures?
+- Which preprocessing steps improved accuracy by 2%?
+- Did upgrading that dependency break model performance?
+- What code changes caused the regression?
 
-Without systematic tracking of **parameters, metrics, code changes, dependencies, and environment**, you're flying blind—relying on scattered notes, terminal output, and memory. **Artifacta solves this** by automatically capturing experiments, configurations, code versions, and artifacts in one place with intelligent visualization.
+Without systematic tracking of **parameters, metrics, code changes, dependencies, and environment**, you're flying blind—relying on scattered notes, terminal output, and memory.
 
----
+But even with tracking, making sense of the data is hard:
 
-## 🌍 Ecosystem & Alternatives
+- Manually comparing metrics across dozens of experiments
+- Spotting patterns in hyperparameter sweeps
+- Understanding why one approach outperformed another
+- Deciding which direction to explore next
 
-Artifacta is part of a growing ecosystem of experiment tracking tools. Popular alternatives include:
-
-- [**MLflow**](https://mlflow.org/) - Open-source platform from Databricks for ML lifecycle management
-- [**Weights & Biases**](https://wandb.ai/) - Cloud-first experiment tracking with team collaboration features
-- [**Neptune.ai**](https://neptune.ai/) - Metadata store for MLOps with extensive integrations
-- [**Comet ML**](https://www.comet.com/) - ML platform with experiment tracking and model production monitoring
-
-**Why Artifacta?** We focus on **automatic visualization discovery**, **domain-agnostic tracking** (not just ML), and **simple self-hosting** with a pre-built UI. No heavy dependencies, no mandatory cloud services—just install and start tracking.
+**Artifacta solves both problems** by automatically capturing experiments AND helping you understand them—with intelligent visualizations, multi-run comparisons, and LLM-powered analysis to explain what happened and why.
 
 ---
 
-## ✨ Key Features
+## Ecosystem & Alternatives
 
-- 🌐 **Domain-agnostic** - Track any experiment comparing parameters, data, and outcomes
-- 📊 **Automatic visualization** - Plots discovered from logged data structure
-- 🔗 **Artifact tracking** - Track datasets, models, code, and results with full provenance
-- 🔄 **Multi-run comparison** - Overlay time series and curves for easy comparison
-- 🎯 **Hyperparameter analysis** - Automatically detect and analyze parameter impact on outcomes
-- 💬 **AI assistant** - Chat interface for experiment insights (OpenAI, Anthropic, local LLMs)
+| Feature | Artifacta | MLflow | W&B | Neptune | Comet |
+|---------|-----------|--------|-----|---------|-------|
+| Zero-config install | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 100% offline | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Built-in lab notebook | ✅ | ❌ | ❌ | ❌ | ❌ |
+| AI assistant (LiteLLM) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Domain-agnostic | ✅ | ✅ | ❌ | ⚠️ | ❌ |
+| Framework autolog | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Team collaboration | ❌ | ⚠️ | ✅ | ✅ | ✅ |
+| Model deployment | ❌ | ✅ | ✅ | ✅ | ✅ |
+
+**Legend:** ✅ Yes | ⚠️ Partial | ❌ No
+
+For detailed feature comparisons (deployment, visualization, integrations), see the [full documentation](https://docs.artifacta.ai).
 
 ---
 
-## 🎨 Visual Overview
+## Why Choose Artifacta?
+
+**What makes Artifacta different:**
+
+- **Zero configuration**: Pre-built UI bundled with Python package—`pip install` and you're done. No Node.js, Docker, or build tools required
+- **Truly offline-first**: Works 100% locally without any cloud dependencies, license servers, or internet connection
+- **Server-side plot generation**: Log data primitives (Series, Scatter, Matrix), not matplotlib figures—Artifacta renders plots for you. No need to create and upload images (though you can if you want)
+- **Built-in electronic lab notebook**: Rich text editor with LaTeX support, file attachments, and per-project organization—not available in any competitor
+- **AI chat interface**: Built-in LLM chat (OpenAI, Anthropic, local models) to analyze experiments, results, and code. W&B and Comet have AI features in premium tiers only
+- **Domain-agnostic design**: Primitives work for any field—ML, A/B tests, physics, finance, genomics, climate science. Not ML-only like most alternatives
+- **Rich artifact previews**: Built-in viewers for video, audio, PDFs, code, images. MLflow only previews images; others require external viewers
+- **Interactive artifact lineage**: Visual flow graph showing how artifacts relate. MLflow has no lineage visualization
+
+---
+
+## Visual Overview
 
 **Automatic Plot Discovery**
 
@@ -67,7 +86,7 @@ Browse and preview datasets, models, code, images, videos, and documents with bu
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -78,24 +97,6 @@ pip install artifacta
 ```
 
 That's it! The UI is pre-built and bundled. No Node.js required.
-
-#### Development Installation
-
-If you want to contribute or modify the source:
-
-**Prerequisites:** Python 3.9+, Node.js 16+
-
-```bash
-# Clone the repository
-git clone https://github.com/walkerbdev/artifacta.git
-cd artifacta
-
-# Build UI from source
-npm install && npm run build
-
-# Install Python package in editable mode
-pip install -e .
-```
 
 ### Start Tracking Server
 
@@ -120,10 +121,10 @@ artifacta ui --dev
 ### Log Your First Experiment
 
 ```python
-import artifacta as ds
+from artifacta import Series, init, log
 
 # Initialize a run
-run = ds.init(
+run = init(
     project="my-project",
     name="experiment-1",
     config={"learning_rate": 0.001, "batch_size": 32}
@@ -133,7 +134,7 @@ run = ds.init(
 for epoch in range(10):
     train_loss = train_model()  # Your training code
 
-    ds.log("metrics", ds.Series(
+    log("metrics", Series(
         index="epoch",
         fields={
             "train_loss": [train_loss],
@@ -147,7 +148,7 @@ run.log_artifact("model.pt", "path/to/model.pt")
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 Full documentation available at: [User Guide](docs/user-guide.rst)
 
@@ -155,7 +156,8 @@ Build and serve docs locally:
 
 ```bash
 pip install artifacta[dev]
-cd docs && make html
+cd docs
+make html  # Generates both JSDoc (UI) and Sphinx (Python) docs
 python -m http.server 8001 --directory _build/html
 ```
 
@@ -163,7 +165,7 @@ Then navigate to http://localhost:8001
 
 ---
 
-## 📊 Core Primitives
+## Core Primitives
 
 Artifacta provides rich primitives for structured logging:
 
@@ -179,7 +181,7 @@ All primitives are automatically visualized in the Plots tab.
 
 ---
 
-## 💻 Web UI Features
+## Web UI Features
 
 - **Plots** - Auto-generated visualizations with multi-run overlay
 - **Sweeps** - Hyperparameter analysis with parallel coordinates
@@ -191,39 +193,47 @@ All primitives are automatically visualized in the Plots tab.
 
 ---
 
-## 💡 Examples
+## Examples
 
-See [examples/](examples/) for runnable examples:
+Examples are organized by category in [examples/](examples/):
 
-- **PyTorch MNIST** - Image classification with autolog
-- **TensorFlow Regression** - Time series forecasting
-- **A/B Testing** - Conversion rate analysis with statistical tests
+**Core examples** ([examples/core/](examples/core/)):
+- Basic tracking - Metrics, parameters, and artifacts
+- All primitives - Series, Scatter, Distribution, Matrix, Bar, and more
 
-Additional domain examples available in [tests/domains/](tests/domains/):
+**ML frameworks** ([examples/ml_frameworks/](examples/ml_frameworks/)):
+- PyTorch (MNIST image classification)
+- TensorFlow/Keras (regression)
+- scikit-learn (classification)
+- XGBoost (regression)
 
-- Climate modeling, Computer vision, Finance, Genomics, Physics, Robotics, and more
+**Domain-specific** ([examples/domain_specific/](examples/domain_specific/)):
+- A/B testing with statistical analysis
+- Protein expression analysis
+
+**Additional domains** - 14 examples in [tests/domains/](tests/domains/):
+- Climate, Computer vision, Finance, Genomics, Physics, Robotics, Audio/Video, and more
 
 **Run examples:**
 
 ```bash
+# Linux/macOS
 source venv/bin/activate
-python examples/ab_testing.py
+python examples/core/01_basic_tracking.py
+python examples/ml_frameworks/pytorch_mnist.py
+python examples/domain_specific/ab_testing_experiment.py
+
+# Windows (PowerShell)
+venv\Scripts\Activate.ps1
+python examples/core/01_basic_tracking.py
+python examples/ml_frameworks/pytorch_mnist.py
+python examples/domain_specific/ab_testing_experiment.py
+
+# Windows (cmd)
+venv\Scripts\activate.bat
+python examples/core/01_basic_tracking.py
+python examples/ml_frameworks/pytorch_mnist.py
+python examples/domain_specific/ab_testing_experiment.py
 ```
 
 ---
-
-## 🧪 Running Tests
-
-Start the tracking server in one terminal:
-
-```bash
-source venv/bin/activate
-artifacta ui
-```
-
-Run tests in another terminal:
-
-```bash
-source venv/bin/activate
-pytest tests/
-```

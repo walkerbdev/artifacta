@@ -3,19 +3,37 @@ import './RunFilter.scss';
 import { getMetricValue } from '@/app/utils/metricAggregation';
 
 /**
- * Dynamic Run Filter Component
- * Inspired by Weights & Biases filtering system
+ * Run Filter component for dynamic filtering of experiment runs
+ *
+ * W&B-inspired filtering system that auto-discovers filter options from run data.
+ * No hardcoded metric names - adapts to whatever metrics users log.
  *
  * Features:
- * - Auto-discovers filter options from run data (no hardcoding!)
- * - Search by run name/ID
- * - Filter by status (Running/Completed)
- * - Filter by metric thresholds (min/max)
+ * - Text search (run name, run ID)
+ * - Status filtering (Running, Completed, Failed)
+ * - Metric threshold filtering (min/max ranges per metric)
+ * - Auto-discovery of available metrics across all runs
+ * - Collapsible filter panel
+ * - Real-time filtering (updates as user types)
+ * - Respects aggregation mode for metric values
  *
- * @param {Array} runs - All available runs
- * @param {Function} onFilterChange - Callback with filtered runs
- * @param {String} aggregationMode - Current aggregation mode (min/max/final)
- * @param {String} optimizeMetric - Metric to optimize for min/max modes
+ * Filter types:
+ * 1. Search: Fuzzy match on run name or ID
+ * 2. Status: Running (in progress) vs Completed/Failed
+ * 3. Metrics: Min/max range filters for any logged metric
+ *
+ * Architecture:
+ * - Stateless filtering (pure function applied to runs)
+ * - Callback-based (notifies parent of filtered results)
+ * - Metric discovery via structured_data inspection
+ *
+ * @param {object} props - Component props
+ * @param {Array<object>} [props.runs=[]] - All available runs to filter
+ * @param {function} props.onFilterChange - Callback with filtered results
+ *   Signature: (filteredRuns: Array<object>) => void
+ * @param {string} [props.aggregationMode='min'] - How to aggregate metrics ('min'/'max'/'final')
+ * @param {string} [props.optimizeMetric='loss'] - Metric to optimize for min/max modes
+ * @returns {React.ReactElement} Collapsible filter panel
  */
 export const RunFilter = ({ runs = [], onFilterChange, aggregationMode = 'min', optimizeMetric = 'loss' }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,7 +77,11 @@ export const RunFilter = ({ runs = [], onFilterChange, aggregationMode = 'min', 
     return Array.from(statuses);
   }, [runs]);
 
-  // Format metric name for display
+  /**
+   * Format metric name for display
+   * @param {string} metricKey - The metric key to format
+   * @returns {string} The formatted metric name
+   */
   const formatMetricName = (metricKey) => {
     return metricKey
       .split('_')
@@ -114,6 +136,13 @@ export const RunFilter = ({ runs = [], onFilterChange, aggregationMode = 'min', 
     onFilterChange(filteredRuns);
   }, [filteredRuns, onFilterChange]);
 
+  /**
+   * Handle metric filter change
+   * @param {string} metricKey - The metric key to filter
+   * @param {string} type - The type of threshold (min or max)
+   * @param {string} value - The threshold value
+   * @returns {void}
+   */
   const handleMetricFilterChange = (metricKey, type, value) => {
     setMetricFilters(prev => ({
       ...prev,
@@ -124,6 +153,11 @@ export const RunFilter = ({ runs = [], onFilterChange, aggregationMode = 'min', 
     }));
   };
 
+  /**
+   * Clear a specific metric filter
+   * @param {string} metricKey - The metric key to clear
+   * @returns {void}
+   */
   const clearMetricFilter = (metricKey) => {
     setMetricFilters(prev => {
       const newFilters = { ...prev };
@@ -132,6 +166,10 @@ export const RunFilter = ({ runs = [], onFilterChange, aggregationMode = 'min', 
     });
   };
 
+  /**
+   * Clear all filters and reset to default state
+   * @returns {void}
+   */
   const clearAllFilters = () => {
     setSearchQuery('');
     setStatusFilter('all');

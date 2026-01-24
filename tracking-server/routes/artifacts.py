@@ -1,5 +1,110 @@
 # mypy: disable-error-code="misc,untyped-decorator,union-attr,no-any-return,arg-type"
-"""Artifact management endpoints - SQLAlchemy ORM version."""
+"""Artifact storage and retrieval endpoints for tracking server.
+
+This module implements content-addressable artifact storage with deduplication,
+inline content support, and file serving capabilities. It bridges between the
+SDK's artifact logging and the UI's artifact viewing/downloading needs.
+
+Key Features:
+    - Content-addressable storage via SHA256 hashing
+    - Automatic deduplication (same hash reuses existing artifact)
+    - Support for both filesystem and virtual (inline) artifacts
+    - File preview with pagination for large artifacts
+    - Individual file serving from multi-file artifacts
+    - Download endpoints for artifact export
+    - Artifact role tracking (input vs output)
+    - Provenance tracking via hash.code tags
+
+Artifact Storage Models:
+
+    1. **Filesystem Artifacts** (storage_path: actual file path):
+       - Large files (model checkpoints, datasets, videos)
+       - Files remain on user's filesystem
+       - storage_path points to actual location
+       - metadata stored in database
+       - content field is NULL
+
+    2. **Virtual Artifacts** (storage_path: virtual://...):
+       - Small text files (code, configs, logs)
+       - Content inlined in database (content field)
+       - No actual filesystem storage
+       - Faster access (no disk I/O)
+       - Better for version control
+
+Content-Addressable Storage Algorithm:
+
+    When SDK logs artifact:
+    1. Compute SHA256 hash of artifact content
+    2. Query database for existing artifact with same hash
+    3. If exists:
+       a. Reuse existing artifact_id
+       b. Create new ArtifactLink with current run_id
+       c. Skip storage (file already exists)
+    4. If not exists:
+       a. Generate new artifact_id (art_XXXXXXXX)
+       b. Create Artifact record with hash and storage_path
+       c. Create ArtifactLink with current run_id
+       d. For virtual artifacts, store content in database
+
+    Benefits:
+        - Deduplication saves storage (checkpoints reused across runs)
+        - Hash ensures integrity (detect file corruption)
+        - Provenance tracking (which runs used which artifacts)
+
+Artifact Links (Many-to-Many):
+
+    The ArtifactLink table enables artifact reuse:
+    - One artifact can be linked to multiple runs
+    - One run can link to multiple artifacts
+    - Role field distinguishes "input" vs "output"
+    - created_at tracks when link was established
+
+    Use cases:
+        - Pretrained model used as input by multiple fine-tuning runs
+        - Dataset artifact shared across experiment runs
+        - Best checkpoint from run A used as input to run B
+
+File Serving Strategy:
+
+    GET /artifact/{artifact_id}/files/{filename}:
+        1. Check if virtual artifact (storage_path starts with "virtual://")
+        2. If virtual:
+           a. Parse content JSON
+           b. Find file by filename in files array
+           c. Return file content with appropriate MIME type
+        3. If filesystem:
+           a. Resolve file path (storage_path + filename)
+           b. Determine MIME type from extension
+           c. Return FileResponse with streaming
+
+    MIME type handling:
+        - Explicit map for common types (mp4, png, pdf, etc.)
+        - Fallback to application/octet-stream
+        - text/* and application/json served inline
+        - Other types trigger download
+
+Provenance Tracking:
+
+    Code artifacts automatically update hash.code tag:
+    1. Parse artifact content JSON
+    2. Check if any file has metadata.type == "code"
+    3. If yes, create/update Tag with key="hash.code", value=artifact_hash
+    4. UI can show code hash for reproducibility
+    5. Users can verify code hasn't changed across runs
+
+Preview Pagination:
+
+    For large artifacts with many files (e.g., dataset with 10K images):
+    - offset, limit parameters control pagination
+    - Returns only requested slice of files
+    - has_more flag indicates more files available
+    - Frontend can load files incrementally
+
+Error Handling:
+    - 404 Not Found: Artifact ID doesn't exist, file not found on disk
+    - 500 Internal Server Error: Database errors, JSON parsing errors
+    - All exceptions logged with exc_info=True for debugging
+"""
 
 import json
 import logging
@@ -10,7 +115,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from database import Artifact, ArtifactLink, Tag
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -56,7 +161,7 @@ async def create_artifact(
         existing = session.query(Artifact).filter(Artifact.hash == request.hash).first()
 
         if existing:
-            artifact_id = existing.artifact_id
+            artifact_id = str(existing.artifact_id)
             logger.info(f"Reusing existing artifact: {artifact_id} (hash={request.hash[:8]}...)")
         else:
             artifact_id = f"art_{uuid.uuid4().hex[:16]}"
@@ -110,7 +215,7 @@ async def create_artifact(
                 )
 
                 if code_tag:
-                    code_tag.value = request.hash
+                    code_tag.value = request.hash  # type: ignore[assignment]
                 else:
                     code_tag = Tag(
                         run_id=request.run_id,
@@ -256,7 +361,7 @@ async def get_artifact_file(
     artifact_id: str,
     filename: str,
     session: Session = Depends(get_session),
-) -> Union[FileResponse, JSONResponse]:
+) -> Union[FileResponse, JSONResponse, Response]:
     """Get a specific file from an artifact.
 
     For inline artifacts (text/code), returns the content directly.
@@ -373,7 +478,7 @@ async def download_artifact(
             with tempfile.NamedTemporaryFile(
                 mode="w", delete=False, suffix=f"_{artifact.name}"
             ) as tmp:
-                tmp.write(artifact.content)
+                tmp.write(str(artifact.content))
                 tmp_path = tmp.name
 
             return FileResponse(

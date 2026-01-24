@@ -3,7 +3,13 @@
  * Enabled via VITE_DEBUG_LOGS=true environment variable
  */
 
+/**
+ * DebugLogger class that captures console logs and saves them to disk.
+ */
 class DebugLogger {
+  /**
+   * Creates a new DebugLogger instance.
+   */
   constructor() {
     this.logs = [];
     this.enabled = import.meta.env.VITE_DEBUG_LOGS === 'true';
@@ -17,12 +23,19 @@ class DebugLogger {
     }
   }
 
+  /**
+   * Intercepts console methods to capture logs.
+   */
   interceptConsole() {
     const self = this;
     const methods = ['log', 'warn', 'error', 'info', 'debug'];
 
     methods.forEach(method => {
       const original = console[method];
+      /**
+       * Wrapper function for console methods.
+       * @param {...unknown} args - Console method arguments
+       */
       console[method] = function(...args) {
         // Filter out React Flow and React DevTools warnings
         const message = args[0];
@@ -63,8 +76,14 @@ class DebugLogger {
     });
   }
 
+  /**
+   * Starts automatic writing of logs to disk every 3 seconds.
+   */
   startAutoWrite() {
     // Write every 3 seconds
+    /**
+     * Interval callback to write logs to disk.
+     */
     setInterval(() => {
       this.writeToDisk();
     }, 3000);
@@ -75,6 +94,9 @@ class DebugLogger {
     });
   }
 
+  /**
+   * Writes captured logs to disk via API endpoint.
+   */
   writeToDisk() {
     if (this.logs.length === 0) return;
 
@@ -108,6 +130,9 @@ class DebugLogger {
     });
   }
 
+  /**
+   * Downloads logs as a text file to the browser.
+   */
   downloadLogs() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `artifacta-logs-${timestamp}.txt`;
@@ -130,7 +155,9 @@ class DebugLogger {
     console.log(`[DebugLogger] Downloaded ${this.logs.length} logs to ${filename}`);
   }
 
-  // Expose method to download logs programmatically
+  /**
+   * Static method to download logs programmatically from global instance.
+   */
   static download() {
     if (window.__debugLogger) {
       window.__debugLogger.downloadLogs();
@@ -143,5 +170,9 @@ class DebugLogger {
 // Initialize and expose globally
 if (import.meta.env.VITE_DEBUG_LOGS === 'true') {
   window.__debugLogger = new DebugLogger();
+  /**
+   * Global function to download debug logs
+   * @returns {void}
+   */
   window.downloadLogs = () => DebugLogger.download();
 }

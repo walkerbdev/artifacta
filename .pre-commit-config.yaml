@@ -29,16 +29,19 @@ repos:
           - --convention=google
         files: ^(artifacta|tracking-server)/
 
-  # ESLint - JavaScript/React linter
+  # ESLint - JavaScript/React linter with JSDoc enforcement
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v9.17.0
     hooks:
       - id: eslint
         files: \.[jt]sx?$
         types: [file]
+        args: [--config, config/eslint.config.js]
         additional_dependencies:
           - eslint@9.17.0
           - eslint-plugin-react@7.37.2
+          - eslint-plugin-react-hooks@5.1.0
+          - eslint-plugin-jsdoc@50.6.1
 
   # Knip - Find unused files, exports, and dependencies (JavaScript/TypeScript)
   - repo: local
@@ -51,7 +54,7 @@ repos:
         files: \.[jt]sx?$
       - id: depcheck
         name: depcheck - unused npm dependencies
-        entry: npx depcheck --ignore-dirs=dist,node_modules,.git
+        entry: npx depcheck
         language: system
         pass_filenames: false
         files: package\.json

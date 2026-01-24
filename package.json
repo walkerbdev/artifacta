@@ -1,13 +1,17 @@
 {
   "name": "artifacta",
   "version": "0.1.0",
+  "type": "module",
   "description": "Universal experiment and artifact tracking — gain insights and optimize models with confidence",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx",
-    "test": "vitest"
+    "dev": "vite --config config/vite.config.js",
+    "build": "vite build --config config/vite.config.js",
+    "preview": "vite preview --config config/vite.config.js",
+    "lint": "eslint src --ext js,jsx --config config/eslint.config.js",
+    "test": "vitest",
+    "test:e2e": "playwright test --config config/playwright.config.js",
+    "test:e2e:ui": "playwright test --config config/playwright.config.js --ui",
+    "docs:ui": "jsdoc -c config/jsdoc.json"
   },
   "dependencies": {
     "@aarkue/tiptap-math-extension": "^1.4.0",
@@ -37,13 +41,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.48.0",
     "@types/node": "^24.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "eslint": "^9.14.0",
+    "eslint-plugin-jsdoc": "^62.3.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
+    "jsdoc": "^4.0.5",
     "knip": "^5.82.1",
     "sass": "^1.97.2",
     "sass-embedded": "^1.97.2",
@@ -67,5 +74,15 @@
   "bugs": {
     "url": "https://github.com/yourusername/artifacta/issues"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "depcheck": {
+    "ignores": [
+      "knip"
+    ],
+    "ignoreDirs": [
+      "dist",
+      "node_modules",
+      ".git"
+    ]
+  }
 }

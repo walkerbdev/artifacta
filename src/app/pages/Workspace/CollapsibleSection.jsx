@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HiChevronDown, HiChevronUp } from 'react-icons/hi';
 import './CollapsibleSection.scss';
 
+/**
+ * Collapsible section component with animation
+ * @param {object} props - Component props
+ * @param {string} [props.title] - Optional section title
+ * @param {React.ReactNode} props.children - Section content
+ * @param {boolean} [props.defaultCollapsed] - Whether section starts collapsed
+ * @returns {React.ReactElement} The collapsible section component
+ */
 export function CollapsibleSection({ title, children, defaultCollapsed = false }) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 

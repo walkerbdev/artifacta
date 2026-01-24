@@ -34,10 +34,14 @@ def cli(ctx: click.Context) -> None:
 @cli.command()
 @click.option("--host", default=DEFAULT_HOST, help="Host to bind the server to")
 @click.option("--port", default=DEFAULT_PORT, type=int, help="Port for the tracking server")
-@click.option("--ui-port", default=DEFAULT_UI_PORT, type=int, help="Port for the UI (dev mode only)")
+@click.option(
+    "--ui-port", default=DEFAULT_UI_PORT, type=int, help="Port for the UI (dev mode only)"
+)
 @click.option("--db", default=DEFAULT_DB_PATH, help="Database file path")
 @click.option("--debug-logs", is_flag=True, help="Enable console log capture to file")
-@click.option("--dev", is_flag=True, help="Run in development mode with hot-reload (requires Node.js)")
+@click.option(
+    "--dev", is_flag=True, help="Run in development mode with hot-reload (requires Node.js)"
+)
 def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool) -> None:
     """Start the full UI (tracking server + frontend).
 
@@ -51,12 +55,13 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
     # Check both installed location and dev location
     try:
         from artifacta_ui import UI_DIST_PATH
+
         dist_exists = UI_DIST_PATH.exists()
     except ImportError:
         dist_exists = (project_root / "dist").exists()
 
     if not dev and not dist_exists:
-        click.echo("❌ UI not built. Please run 'npm install && npm run build' first.")
+        click.echo("UI not built. Please run 'npm install && npm run build' first.")
         click.echo("   Or use --dev flag to run in development mode (requires Node.js).")
         sys.exit(1)
 
@@ -72,13 +77,13 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
         # Enable debug logging if requested
         if debug_logs:
             os.environ["VITE_DEBUG_LOGS"] = "true"
-            click.echo("🐛 Debug logging enabled - logs will be saved to browser downloads")
+            click.echo("[DEBUG] Debug logging enabled - logs will be saved to browser downloads")
 
         processes: List[subprocess.Popen[bytes]] = []
 
         try:
             # Start tracking server
-            click.echo(f"📊 Starting tracking server on {host}:{port}...")
+            click.echo(f"Starting tracking server on {host}:{port}...")
             server_process = subprocess.Popen(
                 [sys.executable, "main.py"], cwd=server_dir, env=os.environ.copy()
             )
@@ -88,7 +93,7 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
             time.sleep(1)
 
             # Start frontend dev server
-            click.echo(f"🎨 Starting UI dev server on http://localhost:{ui_port}...")
+            click.echo(f"Starting UI dev server on http://localhost:{ui_port}...")
             frontend_process = subprocess.Popen(
                 ["npm", "run", "dev", "--", "--port", str(ui_port)],
                 cwd=project_root,
@@ -96,7 +101,7 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
             )
             processes.append(frontend_process)
 
-            click.echo("\n✅ Artifacta is running in development mode!")
+            click.echo("\nArtifacta is running in development mode!")
             click.echo(f"   - Tracking Server: http://{host}:{port}")
             click.echo(f"   - UI: http://localhost:{ui_port}")
             click.echo("\nPress Ctrl+C to stop...")
@@ -106,20 +111,20 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
                 process.wait()
 
         except KeyboardInterrupt:
-            click.echo("\n🛑 Stopping Artifacta...")
+            click.echo("\nStopping Artifacta...")
             for process in processes:
                 process.terminate()
             for process in processes:
                 process.wait()
-            click.echo("✅ Artifacta stopped")
+            click.echo("Artifacta stopped")
         except Exception as e:
-            click.echo(f"❌ Error: {e}", err=True)
+            click.echo(f"Error: {e}", err=True)
             for process in processes:
                 process.terminate()
             sys.exit(1)
     else:
         # Production mode - serve built UI from FastAPI server
-        click.echo(f"📊 Starting server with built-in UI on http://{host}:{port}...")
+        click.echo(f"Starting server with built-in UI on http://{host}:{port}...")
 
         try:
             # Check if running in development (tracking-server dir exists with main.py)
@@ -130,10 +135,16 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
             else:
                 # Installed mode - run as module
                 import uvicorn
-                from tracking_server.config import get_host, get_port, SERVER_BIND_HOST
-                uvicorn.run("tracking_server.main:app", host=SERVER_BIND_HOST, port=get_port(), log_level="info")
+                from tracking_server.config import SERVER_BIND_HOST, get_port
+
+                uvicorn.run(
+                    "tracking_server.main:app",
+                    host=SERVER_BIND_HOST,
+                    port=get_port(),
+                    log_level="info",
+                )
         except KeyboardInterrupt:
-            click.echo("\n🛑 Server stopped")
+            click.echo("\nServer stopped")
 
 
 @cli.command()
@@ -142,7 +153,7 @@ def ui(host: str, port: int, ui_port: int, db: str, debug_logs: bool, dev: bool)
 @click.option("--db", default=DEFAULT_DB_PATH, help="Database file path")
 def server(host: str, port: int, db: str) -> None:
     """Start the tracking server without UI."""
-    click.echo(f"🚀 Starting Artifacta tracking server on {host}:{port}...")
+    click.echo(f"Starting Artifacta tracking server on {host}:{port}...")
 
     project_root = get_project_root()
     server_dir = project_root / "tracking-server"
@@ -155,7 +166,7 @@ def server(host: str, port: int, db: str) -> None:
     try:
         subprocess.run([sys.executable, "main.py"], cwd=server_dir, env=os.environ.copy())
     except KeyboardInterrupt:
-        click.echo("\n🛑 Server stopped")
+        click.echo("\nServer stopped")
 
 
 @cli.group()
@@ -168,13 +179,13 @@ def db() -> None:
 @click.option("--db", default=DEFAULT_DB_PATH, help="Database file path")
 def init(db: str) -> None:
     """Initialize the database."""
-    click.echo(f"🗄️  Initializing database: {db}")
+    click.echo(f"Initializing database: {db}")
 
     project_root = get_project_root()
     db_path = project_root / db
 
     if db_path.exists():
-        click.echo(f"⚠️  Database already exists: {db_path}")
+        click.echo(f"Database already exists: {db_path}")
         if not click.confirm("Do you want to reinitialize it?"):
             return
 
@@ -184,7 +195,7 @@ def init(db: str) -> None:
 
     os.environ["DATABASE_PATH"] = db
     init_db()
-    click.echo(f"✅ Database initialized: {db_path}")
+    click.echo(f"Database initialized: {db_path}")
 
 
 @db.command()
@@ -192,14 +203,14 @@ def init(db: str) -> None:
 @click.confirmation_option(prompt="Are you sure you want to clean the database?")
 def clean(db: str) -> None:
     """Clean/reset the database (removes all data)."""
-    click.echo(f"🧹 Cleaning database: {db}")
+    click.echo(f"Cleaning database: {db}")
 
     project_root = get_project_root()
     db_path = project_root / db
 
     if db_path.exists():
         db_path.unlink()
-        click.echo(f"✅ Database removed: {db_path}")
+        click.echo(f"Database removed: {db_path}")
 
     # Reinitialize
     sys.path.insert(0, str(project_root / "tracking-server"))
@@ -207,7 +218,7 @@ def clean(db: str) -> None:
 
     os.environ["DATABASE_PATH"] = db
     init_db()
-    click.echo(f"✅ Database reinitialized: {db_path}")
+    click.echo(f"Database reinitialized: {db_path}")
 
 
 @db.command(name="reset")
@@ -215,7 +226,7 @@ def clean(db: str) -> None:
 @click.confirmation_option(prompt="Are you sure you want to reset the database?")
 def db_reset(db: str) -> None:
     """Reset the database (alias for clean)."""
-    click.echo(f"🔄 Resetting database: {db}")
+    click.echo(f"Resetting database: {db}")
 
     # Call clean command
     ctx = click.get_current_context()
@@ -226,7 +237,7 @@ def db_reset(db: str) -> None:
 @click.option("--db", default=DEFAULT_DB_PATH, help="Database file path")
 def reset(db: str) -> None:
     """Reset database and show instructions to restart the server."""
-    click.echo("🔄 Resetting Artifacta...")
+    click.echo("Resetting Artifacta...")
 
     project_root = get_project_root()
     db_path = project_root / db
@@ -234,7 +245,7 @@ def reset(db: str) -> None:
     # Clean database
     if db_path.exists():
         db_path.unlink()
-        click.echo(f"✅ Database removed: {db_path}")
+        click.echo(f"Database removed: {db_path}")
 
     # Reinitialize
     sys.path.insert(0, str(project_root / "tracking-server"))
@@ -242,8 +253,8 @@ def reset(db: str) -> None:
 
     os.environ["DATABASE_PATH"] = db
     init_db()
-    click.echo(f"✅ Database reinitialized: {db_path}")
-    click.echo("\n⚠️  Please restart the server:")
+    click.echo(f"Database reinitialized: {db_path}")
+    click.echo("\nPlease restart the server:")
     click.echo("   1. Stop the current server (Ctrl+C)")
     click.echo("   2. Run: python cli.py ui")
 
@@ -251,7 +262,7 @@ def reset(db: str) -> None:
 @cli.command()
 def stop() -> None:
     """Stop all Artifacta processes."""
-    click.echo("🛑 Stopping Artifacta processes...")
+    click.echo("Stopping Artifacta processes...")
 
     # Kill Python processes running cli.py or main.py
     try:
@@ -260,9 +271,9 @@ def stop() -> None:
         # Kill vite dev server
         subprocess.run(["pkill", "-f", "vite"], stderr=subprocess.DEVNULL, check=False)
         time.sleep(1)
-        click.echo("✅ All processes stopped")
+        click.echo("All processes stopped")
     except Exception as e:
-        click.echo(f"⚠️  Error stopping processes: {e}", err=True)
+        click.echo(f"Error stopping processes: {e}", err=True)
         click.echo("   You may need to manually stop processes")
 
 

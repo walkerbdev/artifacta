@@ -5,7 +5,12 @@ import { exportSeriesGroupsAsCSV } from '@/core/utils/csvExport';
 import { discoverMetricsByStream, getMetricValue } from '@/app/utils/metricAggregation';
 import './RunSelector.scss';
 
-// Memoized config display to prevent flickering on re-renders
+/**
+ * Memoized config display to prevent flickering on re-renders
+ * @param {object} props - Component props
+ * @param {object} props.config - Configuration object to display
+ * @returns {React.ReactElement} Config display element
+ */
 const ConfigDisplay = React.memo(({ config }) => (
   <pre className="config-json">{JSON.stringify(config, null, 2)}</pre>
 ), (prevProps, nextProps) => {
@@ -14,10 +19,33 @@ const ConfigDisplay = React.memo(({ config }) => (
 });
 
 /**
- * Run Selector Component
+ * Run Selector component for browsing, filtering, and selecting experiment runs
  *
- * Displays and manages run selection from the database.
- * Supports filtering, sorting, and multi-selection of runs.
+ * Main interface for run management in the sidebar. Displays all runs with their
+ * configurations, status, and metrics. Supports filtering, sorting, and multi-selection.
+ *
+ * Features:
+ * - List view of all experiment runs
+ * - Multi-select with checkboxes
+ * - Run filtering (search by name, status, tags)
+ * - Expandable config/metadata display for each run
+ * - CSV export of selected runs' metrics
+ * - Run count display
+ * - Select all/none shortcuts
+ * - Collapsible run details
+ *
+ * Architecture:
+ * - Controlled component (selection state managed by parent)
+ * - Receives runs via props (avoids duplicate polling)
+ * - Delegates filtering to RunFilter sub-component
+ *
+ * @param {object} props - Component props
+ * @param {Array<string>} [props.selectedRunIds=[]] - Currently selected run IDs (controlled)
+ * @param {function} [props.onRunSelectionChange] - Callback when selection changes
+ *   Signature: (selectedRunIds: Array<string>) => void
+ * @param {Array<object>} [props.runs=[]] - All available runs from database
+ * @param {boolean} [props.runsLoading=false] - Whether runs are currently loading
+ * @returns {React.ReactElement} Run selector interface
  */
 export const RunSelector = ({
   selectedRunIds = [], // NEW: controlled from parent
@@ -35,13 +63,21 @@ export const RunSelector = ({
   // Per-table filtered runs: tableKey -> filtered runs array
   const [tableFilteredRuns, setTableFilteredRuns] = useState({});
 
-  // Export all visible tables as CSV
+  /**
+   * Exports all visible tables as CSV
+   * @returns {void}
+   */
   const handleExportAllTables = () => {
     const selectedRuns = runs.filter(r => selectedRunIds.includes(r.run_id));
     const metricsByStream = discoverMetricsByStream(selectedRuns);
     exportSeriesGroupsAsCSV(selectedRuns, metricsByStream, streamAggregation, getMetricValue);
   };
 
+  /**
+   * Toggles selection state of a run
+   * @param {string} runId - ID of the run to toggle
+   * @returns {void}
+   */
   const toggleRunSelection = (runId) => {
     const newSelection = selectedRunIds.includes(runId)
       ? selectedRunIds.filter(id => id !== runId)
@@ -49,6 +85,11 @@ export const RunSelector = ({
     onRunSelectionChange(newSelection);
   };
 
+  /**
+   * Toggles expanded state of a run to show/hide config
+   * @param {string} runId - ID of the run to toggle
+   * @returns {void}
+   */
   const toggleExpandRun = (runId) => {
     setExpandedRunIds(prev => {
       const newSet = new Set(prev);
@@ -61,6 +102,11 @@ export const RunSelector = ({
     });
   };
 
+  /**
+   * Toggles expanded state of a table
+   * @param {string} tableKey - Key of the table to toggle
+   * @returns {void}
+   */
   const toggleTableExpand = (tableKey) => {
     setExpandedTables(prev => {
       const newSet = new Set(prev);
@@ -114,11 +160,22 @@ export const RunSelector = ({
             const visibleParamKeys = Array.from(allParamKeys).sort();
             const visibleTagKeys = Array.from(allTagKeys).sort();
 
+            /**
+             * Formats a metric value for display
+             * @param {string} key - Metric key
+             * @param {string|number|null|undefined} value - Metric value to format
+             * @returns {string} Formatted value string
+             */
             const formatMetricValue = (key, value) => {
               if (value === null || value === undefined) return '-';
               return typeof value === 'number' ? value.toFixed(4) : String(value);
             };
 
+            /**
+             * Converts a key to a display name with capitalized words
+             * @param {string} key - Key to convert
+             * @returns {string} Display name
+             */
             const getDisplayName = (key) => {
               return key.split('_').map(word =>
                 word.charAt(0).toUpperCase() + word.slice(1)

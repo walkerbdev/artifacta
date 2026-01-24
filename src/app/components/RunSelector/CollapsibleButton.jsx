@@ -2,8 +2,23 @@ import React from 'react';
 import { HiChevronDown, HiChevronUp } from 'react-icons/hi';
 
 /**
- * Reusable collapsible toggle button component
- * Used to expand/collapse table sections in RunSelector
+ * Collapsible toggle button for expand/collapse interactions
+ *
+ * Reusable UI button used throughout the app for collapsing sections.
+ * Primarily used in RunSelector for collapsing run detail tables.
+ *
+ * Features:
+ * - Animated chevron icon (up/down)
+ * - Hover effects (color change, shadow)
+ * - Click animation (scale down on press)
+ * - Tooltip showing current state
+ * - Circular design with subtle shadow
+ *
+ * @param {object} props - Component props
+ * @param {boolean} props.isCollapsed - Current collapsed state
+ * @param {function} props.onClick - Click handler to toggle state
+ * @param {string} [props.title] - Custom tooltip (defaults to "Expand/Collapse table")
+ * @returns {React.ReactElement} Circular toggle button with chevron icon
  */
 export const CollapsibleButton = ({ isCollapsed, onClick, title }) => {
   return (

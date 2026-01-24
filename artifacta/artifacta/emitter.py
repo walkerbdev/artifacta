@@ -1,4 +1,39 @@
-"""HTTP emitter for metrics - MLflow pattern."""
+"""HTTP emitter for real-time metrics and artifact transmission.
+
+This module implements the client-side HTTP emitter that sends run data, metrics,
+and artifacts to the tracking server in real-time. The push-based design enables
+immediate visualization and reduces architectural complexity compared to
+file-watching approaches.
+
+Architecture:
+    The emitter acts as a reliable HTTP client with graceful degradation:
+
+    1. Initialization: Health check against tracking server
+    2. Run Creation: POST to /api/runs to create database entry
+    3. Data Emission: POST to /api/runs/{run_id}/data for real-time metrics
+    4. Artifact Registration: POST to /api/artifacts for file metadata
+    5. WebSocket Integration: Server broadcasts emissions to connected clients
+
+Graceful Degradation:
+    The emitter handles network failures gracefully to avoid blocking training:
+
+    - If health check fails -> disable HTTP emission, warn user, continue locally
+    - If data emission fails -> fail silently, don't block training loop
+    - If artifact emission fails -> warn user but continue
+    - Strict mode (for tests) -> raise exceptions instead of degrading
+
+    This ensures that network issues never crash the user's training job.
+
+Connection Management:
+    - Uses requests.Session for connection pooling (HTTP keep-alive)
+    - Configurable timeouts (2s for health/data, 5s for init/artifacts)
+    - Session headers set once at initialization
+    - Explicit close() method for cleanup
+
+Environment Variables:
+    - ARTIFACTA_API_URL: Base URL of tracking server (e.g., http://localhost:8000)
+    - ARTIFACTA_STRICT_MODE: Enable strict mode for testing (raise exceptions on errors)
+"""
 
 import os
 from typing import Any, Dict, Optional
@@ -7,7 +42,7 @@ import requests
 
 
 class HTTPEmitter:
-    """Emit metrics directly to API Gateway (MLflow/W&B pattern).
+    """Emit metrics directly to API Gateway for real-time tracking.
 
     Metrics are sent in real-time to the API server, enabling:
     - Immediate visualization in UI (via WebSocket)
@@ -18,14 +53,38 @@ class HTTPEmitter:
     """
 
     def __init__(self, run_id: str, api_url: Optional[str] = None):
-        """Initialize HTTP emitter.
+        """Initialize HTTP emitter with health check and connection setup.
+
+        Initialization algorithm:
+            1. Store run_id for all subsequent API calls
+            2. Resolve api_url from parameter or ARTIFACTA_API_URL environment variable
+            3. Create persistent requests.Session for connection pooling (HTTP keep-alive)
+            4. Set Content-Type header once for all requests
+            5. Check strict_mode from environment (for testing vs production behavior)
+            6. Perform health check via GET /health with 2-second timeout
+            7. If health check fails:
+               - Strict mode: Raise RuntimeError (tests should fail fast)
+               - Normal mode: Print warning, disable emitter, continue locally
+
+        The health check ensures the tracking server is available before attempting
+        any data emissions. This avoids timeout delays on every emit call if the
+        server is down.
+
+        Connection pooling via Session:
+            - Reuses TCP connections across multiple requests
+            - Reduces latency (no handshake overhead per request)
+            - Automatically handles keep-alive headers
 
         Args:
-            run_id: Run ID for this emitter.
-            api_url: Base URL of tracking server. If not provided, uses ARTIFACTA_API_URL environment variable.
+            run_id: Run ID for this emitter (links all emissions to this run)
+            api_url: Base URL of tracking server (e.g., http://localhost:8000).
+                     Defaults to ARTIFACTA_API_URL env var or http://localhost:8000.
+
+        Raises:
+            RuntimeError: If health check fails and ARTIFACTA_STRICT_MODE is enabled
         """
         self.run_id = run_id
-        self.api_url = api_url or os.getenv("ARTIFACTA_API_URL")
+        self.api_url = api_url or os.getenv("ARTIFACTA_API_URL", "http://localhost:8000")
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
         self.enabled = True
@@ -36,13 +95,13 @@ class HTTPEmitter:
         try:
             response = self.session.get(f"{self.api_url}/health", timeout=2)
             if response.status_code != 200:
-                msg = "⚠️  API Gateway health check failed, disabling HTTP emission"
+                msg = "API Gateway health check failed, disabling HTTP emission"
                 if self.strict_mode:
                     raise RuntimeError(msg)
                 print(msg)
                 self.enabled = False
         except requests.RequestException as e:
-            msg = f"⚠️  API Gateway not reachable, disabling HTTP emission: {e}"
+            msg = f"API Gateway not reachable, disabling HTTP emission: {e}"
             if self.strict_mode:
                 raise RuntimeError(msg) from e
             print(msg)
@@ -65,13 +124,36 @@ class HTTPEmitter:
         except Exception as e:
             if self.strict_mode:
                 raise RuntimeError(f"Failed to emit init to API Gateway: {e}") from e
-            print(f"⚠️  Failed to emit init to API Gateway: {e}")
+            print(f"Failed to emit init to API Gateway: {e}")
             return False
 
     def emit_structured_data(self, data: Dict[str, Any]) -> bool:
-        """Emit structured data primitive to API Gateway.
+        """Emit structured data primitive to API Gateway with real-time WebSocket broadcast.
 
-        Broadcasted to UI in real-time via WebSocket.
+        Data flow:
+            1. Check if emitter is enabled (skip if health check failed)
+            2. POST to /api/runs/{run_id}/data with JSON payload
+            3. Server receives data and stores in database
+            4. Server broadcasts data to all WebSocket clients subscribed to this run
+            5. UI updates in real-time (live charts, metrics tables)
+
+        Failure handling:
+            - Fails silently (returns False) without raising exceptions
+            - This is intentional: network issues shouldn't crash training loops
+            - Training continues, local JSONL still written
+            - User can still view data after run completes
+
+        Performance considerations:
+            - 2-second timeout to avoid blocking training
+            - No retry logic (fire-and-forget for performance)
+            - Session reuse minimizes connection overhead
+
+        Args:
+            data: Dictionary containing primitive type data (Series, Distribution, etc.)
+                  Must include 'name' and 'data' keys at minimum
+
+        Returns:
+            True if emission successful, False otherwise (including when disabled)
         """
         if not self.enabled:
             return False
@@ -123,7 +205,7 @@ class HTTPEmitter:
         except Exception as e:
             if self.strict_mode:
                 raise RuntimeError(f"Failed to emit artifact to API Gateway: {e}") from e
-            print(f"⚠️  Failed to emit artifact to API Gateway: {e}")
+            print(f"Failed to emit artifact to API Gateway: {e}")
             return None
 
     def update_run_config_artifact(self, artifact_id: str) -> bool:
@@ -144,7 +226,7 @@ class HTTPEmitter:
             response.raise_for_status()
             return True
         except Exception as e:
-            print(f"⚠️  Failed to update config artifact link: {e}")
+            print(f"Failed to update config artifact link: {e}")
             return False
 
     def emit_note(self, project_id: str, title: str, content: str) -> Optional[int]:
@@ -173,7 +255,7 @@ class HTTPEmitter:
             response.raise_for_status()
             return response.json().get("id")
         except Exception as e:
-            print(f"⚠️  Failed to create note: {e}")
+            print(f"Failed to create note: {e}")
             return None
 
     def close(self):

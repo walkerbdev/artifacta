@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, docs/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[dev]'
+
+    - name: Build UI
+      run: npm install && npm run build
+
+    - name: Start Artifacta server (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        mkdir -p data
+        nohup artifacta ui --port 8000 > server.log 2>&1 &
+        echo $! > server.pid
+
+        # Wait for server to be ready
+        echo "Waiting for server to start..."
+        SERVER_READY=false
+        for i in {1..30}; do
+          if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+            echo "✓ Server is ready"
+            SERVER_READY=true
+            break
+          fi
+          echo "Waiting for server... ($i/30)"
+          sleep 1
+        done
+
+        # Fail if server never started
+        if [ "$SERVER_READY" = "false" ]; then
+          echo "✗ Server failed to start after 30 seconds"
+          echo "Server log:"
+          cat server.log
+          exit 1
+        fi
+
+    - name: Start Artifacta server (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (-not (Test-Path data)) { New-Item -ItemType Directory -Path data }
+        $process = Start-Process python -ArgumentList "-m","tracking_server.cli","ui","--port","8000" -PassThru -WindowStyle Hidden
+        Start-Sleep -Seconds 2
+
+        # Health check with retries
+        $maxAttempts = 5
+        $attempt = 0
+        $success = $false
+        while ($attempt -lt $maxAttempts -and -not $success) {
+          try {
+            $response = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 2
+            if ($response.StatusCode -eq 200) {
+              $success = $true
+              Write-Host "Server is ready"
+            }
+          } catch {
+            $attempt++
+            if ($attempt -lt $maxAttempts) {
+              Start-Sleep -Seconds 3
+            }
+          }
+        }
+
+        if (-not $success) {
+          Write-Host "Server failed to start after $maxAttempts attempts"
+          exit 1
+        }
+
+    - name: Run pytest
+      run: pytest tests/ -v --tb=short
+      env:
+        TRACKING_SERVER_HOST: ${{ runner.os == 'Windows' && '127.0.0.1' || 'localhost' }}
+
+    - name: Stop Artifacta server (Unix)
+      if: always() && runner.os != 'Windows'
+      run: |
+        if [ -f server.pid ]; then
+          kill $(cat server.pid) || true
+          rm server.pid
+        fi
+
+    - name: Stop Artifacta server (Windows)
+      if: always() && runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*tracking_server*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Server cleanup completed"
+
+  e2e:
+    name: E2E Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[dev]'
+
+    - name: Install Node dependencies and build UI
+      run: npm install && npm run build
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run E2E tests
+      run: npm run test:e2e
+      env:
+        ARTIFACTA_URL: ${{ runner.os == 'Windows' && 'http://127.0.0.1:8000' || 'http://localhost:8000' }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[dev]'
+
+    - name: Run ruff
+      run: ruff check . --fix
+
+    - name: Run mypy
+      run: mypy --ignore-missing-imports tracking-server
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+
+    - name: Build package
+      run: python -m build
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/

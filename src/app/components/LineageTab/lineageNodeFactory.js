@@ -1,6 +1,26 @@
 /**
  * Factory functions for creating lineage graph nodes
- * Eliminates repetitive node creation code in LineageTab
+ *
+ * Provides standardized node creation for ReactFlow lineage visualization.
+ * Eliminates repetitive node setup code and ensures consistent node structure
+ * across all node types (runs, artifacts, configs, code, environment, etc.).
+ *
+ * Node types supported:
+ * - run: Experiment run nodes
+ * - artifact: Generic file artifacts (logs, images, etc.)
+ * - model: Model checkpoint artifacts
+ * - dataset: Dataset artifacts
+ * - config: Configuration hash nodes
+ * - code: Code hash nodes (git commits)
+ * - env: Environment variable hash nodes
+ * - deps: Dependency hash nodes
+ *
+ * All nodes share common structure:
+ * - Compact display mode by default
+ * - Expandable on click to show full details
+ * - Hash-based deduplication
+ * - Color coding for artifacts
+ * - Click handlers for viewing/selecting
  */
 
 import { getArtifactColor } from '../../utils/artifactColors';
@@ -8,10 +28,10 @@ import { getArtifactColor } from '../../utils/artifactColors';
 /**
  * Create a lineage node with standard structure
  * @param {string} type - Node type (config, code, dataset, deps, env, run, model)
- * @param {Object} data - Node-specific data
- * @param {Object} position - {x, y} position
+ * @param {object} data - Node-specific data
+ * @param {object} position - {x, y} position
  * @param {string} color - Optional custom color override
- * @returns {Object} ReactFlow node object
+ * @returns {object} ReactFlow node object
  */
 const createLineageNode = (type, data, position, color) => {
   const { id, label, hash, extraInfo = {}, ...rest } = data;
@@ -34,6 +54,8 @@ const createLineageNode = (type, data, position, color) => {
 
 /**
  * Format runs list for node display
+ * @param {Array} runs - Array of run objects
+ * @returns {string} Comma-separated list of run names/IDs
  */
 const formatRunsList = (runs) => {
   return runs.map(r => r.name || r.run_id).join(', ');
@@ -41,6 +63,11 @@ const formatRunsList = (runs) => {
 
 /**
  * Create config node
+ * @param {object} configGroup - Configuration group data
+ * @param {object} position - Node position {x, y}
+ * @param {(artifact: object) => void} onView - Handler to view config JSON
+ * @param {object} virtualArtifact - Virtual artifact with JSON content
+ * @returns {object} ReactFlow node object
  */
 export const createConfigNode = (configGroup, position, onView, virtualArtifact) => {
   return createLineageNode('config', {
@@ -57,6 +84,9 @@ export const createConfigNode = (configGroup, position, onView, virtualArtifact)
 
 /**
  * Create code node
+ * @param {object} codeGroup - Code group data
+ * @param {object} position - Node position {x, y}
+ * @returns {object} ReactFlow node object
  */
 export const createCodeNode = (codeGroup, position) => {
   return createLineageNode('code', {
@@ -73,6 +103,10 @@ export const createCodeNode = (codeGroup, position) => {
 
 /**
  * Create dataset node
+ * @param {object} datasetGroup - Dataset group data
+ * @param {object} position - Node position {x, y}
+ * @param {(dataset: object) => void} onDatasetSelect - Handler for dataset selection
+ * @returns {object} ReactFlow node object
  */
 export const createDatasetNode = (datasetGroup, position, onDatasetSelect) => {
   return createLineageNode('dataset', {
@@ -92,6 +126,9 @@ export const createDatasetNode = (datasetGroup, position, onDatasetSelect) => {
 
 /**
  * Create dependencies node
+ * @param {object} depsGroup - Dependencies group data
+ * @param {object} position - Node position {x, y}
+ * @returns {object} ReactFlow node object
  */
 export const createDepsNode = (depsGroup, position) => {
   return createLineageNode('deps', {
@@ -106,6 +143,9 @@ export const createDepsNode = (depsGroup, position) => {
 
 /**
  * Create environment node
+ * @param {object} envGroup - Environment group data
+ * @param {object} position - Node position {x, y}
+ * @returns {object} ReactFlow node object
  */
 export const createEnvNode = (envGroup, position) => {
   return createLineageNode('env', {
@@ -120,6 +160,10 @@ export const createEnvNode = (envGroup, position) => {
 
 /**
  * Create run node
+ * @param {object} run - Run data
+ * @param {number} idx - Run index
+ * @param {object} position - Node position {x, y}
+ * @returns {object} ReactFlow node object
  */
 export const createRunNode = (run, idx, position) => {
   const runLabel = run.name || `Run ${idx + 1}`;
@@ -141,6 +185,11 @@ export const createRunNode = (run, idx, position) => {
 
 /**
  * Create model node
+ * @param {object} model - Model artifact data
+ * @param {object} run - Run data (null for input artifacts)
+ * @param {object} position - Node position {x, y}
+ * @param {(artifact: object) => void} onArtifactView - Handler to view artifact
+ * @returns {object} ReactFlow node object
  */
 export const createModelNode = (model, run, position, onArtifactView) => {
   // If run is null, this is an input artifact (grouped by hash)
@@ -168,6 +217,12 @@ export const createModelNode = (model, run, position, onArtifactView) => {
  * Create generic artifact node
  * Handles both inputs (run=null) and outputs (run provided)
  * Color-coded by file extension
+ * @param {object} artifact - Artifact data
+ * @param {object} run - Run data (null for input artifacts)
+ * @param {object} position - Node position {x, y}
+ * @param {(artifact: object) => void} onArtifactView - Handler to view artifact
+ * @param {(dataset: object) => void} onDatasetSelect - Handler for dataset selection
+ * @returns {object} ReactFlow node object
  */
 export const createArtifactNode = (artifact, run, position, onArtifactView, onDatasetSelect) => {
   // If run is null, this is an input artifact (grouped by hash)

@@ -8,10 +8,20 @@ import {
   createArtifactNode
 } from './lineageNodeFactory';
 
-// Custom compact node component
+/**
+ * Custom compact node component for displaying run and artifact nodes in the lineage graph
+ * @param {object} props - Component props
+ * @param {object} props.data - Node data containing label, hash, and other display information
+ * @returns {React.ReactElement} Compact node component
+ */
 const CompactNode = ({ data }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  /**
+   * Handles click events on the node to toggle expansion
+   * @param {React.MouseEvent} e - Click event
+   * @returns {void}
+   */
   const handleClick = (e) => {
     e.stopPropagation();
     setIsExpanded(!isExpanded);
@@ -69,6 +79,39 @@ const nodeTypes = {
   compact: CompactNode
 };
 
+/**
+ * Lineage Flow component for visualizing experiment provenance DAG
+ *
+ * Interactive directed acyclic graph (DAG) showing data lineage and dependencies
+ * for selected experiment runs. Powered by ReactFlow for graph rendering.
+ *
+ * Features:
+ * - DAG visualization of run → artifact → run relationships
+ * - Code/config/environment/dependency hash nodes
+ * - Artifact nodes (datasets, models, logs)
+ * - Interactive node expansion (click to show full details)
+ * - Auto-layout with hierarchical positioning
+ * - Zoom and pan controls
+ * - Multi-run lineage merging
+ *
+ * Node types:
+ * - Run nodes: Experiment runs with hash information
+ * - Artifact nodes: Logged files, datasets, model checkpoints
+ * - Hash nodes: Code, config, environment, dependencies, platform hashes
+ *
+ * Use cases:
+ * - Trace data provenance (which dataset produced which model?)
+ * - Find related runs (same code hash = reproducible)
+ * - Debug dependency issues (visualize environment changes)
+ * - Understand experiment lineage over time
+ *
+ * @param {object} props - Component props
+ * @param {Array<string>} props.selectedRunIds - Run IDs to visualize
+ * @param {Array<object>} props.allRuns - All available runs (for hash lookups)
+ * @param {function} [props.onDatasetSelect] - Callback for dataset node clicks
+ * @param {function} [props.onArtifactView] - Callback for artifact node clicks
+ * @returns {React.ReactElement|null} ReactFlow graph or empty state
+ */
 const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView }) => {
   const [artifactLinksByRun, setArtifactLinksByRun] = useState({});
   const [loading, setLoading] = useState(false);
@@ -88,6 +131,10 @@ const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView 
       return;
     }
 
+    /**
+     * Fetches artifact links for all selected runs
+     * @returns {Promise<void>}
+     */
     const fetchAllArtifactLinks = async () => {
       setLoading(true);
       try {
@@ -284,7 +331,12 @@ const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView 
     return <div className="lineage-tab-loading">Loading provenance...</div>;
   }
 
-  // Check if node is connected to hovered node
+  /**
+   * Check if a node is connected to the hovered node
+   * @param {string} nodeId - ID of the node to check
+   * @param {string} hoveredId - ID of the hovered node
+   * @returns {boolean} True if the node is connected to the hovered node
+   */
   const isNodeConnected = (nodeId, hoveredId) => {
     if (nodeId === hoveredId) return true;
     return edges.some(edge =>
@@ -293,7 +345,12 @@ const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView 
     );
   };
 
-  // Check if edge is connected to hovered node
+  /**
+   * Check if an edge is connected to the hovered node
+   * @param {object} edge - Edge object to check
+   * @param {string} hoveredId - ID of the hovered node
+   * @returns {boolean} True if the edge is connected to the hovered node
+   */
   const isEdgeConnected = (edge, hoveredId) => {
     return edge.source === hoveredId || edge.target === hoveredId;
   };
@@ -318,10 +375,20 @@ const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView 
     }
   }));
 
+  /**
+   * Handles mouse enter event on a node to enable hover highlighting
+   * @param {object} event - Mouse event
+   * @param {object} node - Node that was entered
+   * @returns {void}
+   */
   const handleNodeMouseEnter = (event, node) => {
     setHoveredNode(node.id);
   };
 
+  /**
+   * Handles mouse leave event on a node to disable hover highlighting
+   * @returns {void}
+   */
   const handleNodeMouseLeave = () => {
     setHoveredNode(null);
   };
@@ -346,6 +413,11 @@ const LineageFlow = ({ selectedRunIds, allRuns, onDatasetSelect, onArtifactView 
   );
 };
 
+/**
+ * LineageTab component wrapper that provides ReactFlow context
+ * @param {object} props - Component props passed to LineageFlow
+ * @returns {React.ReactElement} LineageTab component
+ */
 export const LineageTab = (props) => {
   return (
     <ReactFlowProvider>

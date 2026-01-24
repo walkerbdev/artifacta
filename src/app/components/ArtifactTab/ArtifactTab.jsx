@@ -7,6 +7,37 @@ import { apiClient } from '@/core/api/ApiClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+/**
+ * Artifact Tab component for previewing logged files
+ *
+ * Displays previews of selected artifacts from the Artifacts panel. Supports images,
+ * CSVs, JSON, code files, audio, video, and more with appropriate rendering.
+ *
+ * Supported file types:
+ * - Tables: CSV (parsed and rendered as table with pagination)
+ * - Images: PNG, JPG, GIF, SVG (grid gallery view)
+ * - Code: Python, JavaScript, JSON, YAML (syntax highlighted)
+ * - Audio: MP3, WAV, OGG (audio player)
+ * - Video: MP4, WEBM (video player)
+ * - Text: TXT, MD, LOG (plain text viewer)
+ * - Binary: Model checkpoints (download link)
+ *
+ * Features:
+ * - Auto-detects file type from MIME type
+ * - CSV pagination (100 rows per page)
+ * - Image gallery with multiple images
+ * - Syntax highlighting for code files
+ * - Audio/video players
+ * - Download links for all files
+ *
+ * @param {object} props - Component props
+ * @param {object|null} props.selectedArtifact - Artifact to preview:
+ *   - file: object - File data with content/mime_type
+ *   - imageFiles: Array (optional) - Multiple images
+ *   - audioFiles: Array (optional) - Multiple audio files
+ *   - videoFiles: Array (optional) - Multiple video files
+ * @returns {React.ReactElement|null} File preview or empty state
+ */
 export const ArtifactTab = ({ selectedArtifact }) => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,6 +94,11 @@ export const ArtifactTab = ({ selectedArtifact }) => {
         Papa.parse(file.content, {
           header: true,
           skipEmptyLines: true,
+          /**
+           * Callback function executed when CSV parsing is complete.
+           * @param {object} results - The parsed CSV results from Papa Parse
+           * @returns {void}
+           */
           complete: (results) => {
             setPreview({
               type: 'table',
@@ -125,6 +161,10 @@ export const ArtifactTab = ({ selectedArtifact }) => {
       return;
     }
 
+    /**
+     * Fetches the preview data for the selected artifact from the API.
+     * @returns {Promise<void>}
+     */
     const fetchPreview = async () => {
       setLoading(true);
       try {
@@ -144,6 +184,11 @@ export const ArtifactTab = ({ selectedArtifact }) => {
           Papa.parse(csvText, {
             header: true,
             skipEmptyLines: true,
+            /**
+             * Callback function executed when CSV parsing is complete.
+             * @param {object} results - The parsed CSV results from Papa Parse
+             * @returns {void}
+             */
             complete: (results) => {
               const previewData = {
                 type: 'table',
@@ -159,6 +204,11 @@ export const ArtifactTab = ({ selectedArtifact }) => {
               setPreview(previewData);
               setLoading(false);
             },
+            /**
+             * Callback function executed when CSV parsing encounters an error.
+             * @param {Error} error - The error object from Papa Parse
+             * @returns {void}
+             */
             error: (error) => {
               console.error('CSV parse error:', error);
               setPreview(null);
@@ -204,10 +254,18 @@ export const ArtifactTab = ({ selectedArtifact }) => {
     );
   }
 
+  /**
+   * Handles navigation to the previous page in paginated data.
+   * @returns {void}
+   */
   const handlePrevPage = () => {
     setOffset(Math.max(0, offset - limit));
   };
 
+  /**
+   * Handles navigation to the next page in paginated data.
+   * @returns {void}
+   */
   const handleNextPage = () => {
     setOffset(offset + limit);
   };

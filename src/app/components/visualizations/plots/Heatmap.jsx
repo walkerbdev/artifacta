@@ -5,14 +5,50 @@ import { getChartFont } from '@/app/hooks/useCanvasSetup';
 import PlotTooltip from '../shared/PlotTooltip';
 
 /**
- * Heatmap for Matrix data
- * Displays 2D matrix as color-coded grid
- * Expects data format: { rows: [labels], cols: [labels], values: [[numbers]] }
+ * Heatmap component for 2D matrix visualization
+ *
+ * Renders color-coded grid heatmaps with interactive tooltips. Commonly used for
+ * confusion matrices, correlation matrices, and attention weights.
+ *
+ * Features:
+ * - Color-coded cells based on value (blue-white-red gradient)
+ * - Interactive tooltips showing exact cell values
+ * - Row and column labels
+ * - Auto-scaled cell sizes based on matrix dimensions
+ * - Value annotations in each cell
+ * - HiDPI display support
+ *
+ * Data format:
+ * ```
+ * {
+ *   rows: ["Class A", "Class B", "Class C"],      // Row labels
+ *   cols: ["Pred A", "Pred B", "Pred C"],        // Column labels
+ *   values: [                                      // 2D matrix
+ *     [120, 5, 2],    // Row 0
+ *     [3, 95, 8],     // Row 1
+ *     [1, 10, 110]    // Row 2
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {object} props.data - Heatmap data with labels and values
+ * @param {Array<string>} props.data.rows - Row labels
+ * @param {Array<string>} props.data.cols - Column labels
+ * @param {Array<Array<number>>} props.data.values - 2D matrix of numeric values
+ * @param {string} [props._title] - Title (handled by wrapper, not used internally)
+ * @returns {React.ReactElement} Canvas-based heatmap with tooltip
  */
-const Heatmap = ({ data, title }) => {
+const Heatmap = ({ data, _title }) => {
   const canvasRef = useRef(null);
   const plotDataRef = useRef(null);
 
+  /**
+   * Draws the heatmap on canvas
+   * @param {number} width - Canvas width
+   * @param {number} height - Canvas height
+   * @returns {void}
+   */
   const drawHeatmap = useCallback((width, height) => {
     if (!data || !data.values || !canvasRef.current) {
       return;
@@ -65,6 +101,11 @@ const Heatmap = ({ data, title }) => {
     const maxVal = Math.max(...allValues);
 
     // Color scale: blue (low) -> white (mid) -> red (high)
+    /**
+     * Calculates color for a value based on min/max range
+     * @param {number} value - The value to calculate color for
+     * @returns {string} RGB color string
+     */
     const getColor = (value) => {
       const normalized = (value - minVal) / (maxVal - minVal);
 
@@ -173,11 +214,16 @@ const Heatmap = ({ data, title }) => {
 
     // No return needed - container controls size, plot adapts
 
-  }, [data, title]);
+  }, [data]);
 
   useResponsiveCanvas(canvasRef, drawHeatmap);
 
-  // Tooltip logic: find cell under mouse (on-the-fly)
+  /**
+   * Tooltip logic: find cell under mouse (on-the-fly)
+   * @param {number} mouseX - Mouse X coordinate
+   * @param {number} mouseY - Mouse Y coordinate
+   * @returns {object|null} Tooltip data or null if not over a cell
+   */
   const getTooltipData = useCallback((mouseX, mouseY) => {
     if (!plotDataRef.current) return null;
 

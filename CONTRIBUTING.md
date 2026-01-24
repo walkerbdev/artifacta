@@ -1,6 +1,6 @@
 # Contributing to Artifacta
 
-Thank you for your interest in contributing to Artifacta! 🎉
+Thank you for your interest in contributing to Artifacta!
 
 ## How to Contribute
 

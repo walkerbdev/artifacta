@@ -5,7 +5,7 @@ import ParameterCorrelationChart from '@/app/components/visualizations/plots/Par
 import ScatterPlot from '@/app/components/visualizations/plots/ScatterPlot';
 import { DraggableVisualization } from '@/app/components/visualizations/DraggableVisualization';
 import { useLayoutManager } from '@/app/hooks';
-import { calculateParameterImportance } from '@/app/utils/comparisonPlotDiscovery';
+import { calculateParameterCorrelation } from '@/app/utils/comparisonPlotDiscovery';
 import './SweepsTab.scss';
 
 /**
@@ -16,6 +16,10 @@ import './SweepsTab.scss';
  * - Scatter Plots: Swept parameter vs target metric
  *
  * Only renders if selected runs form a valid sweep (same keys, one varying param)
+ * @param {object} props - Component props
+ * @param {Array} props.runs - Array of run objects
+ * @param {Array<string>} props.selectedRunIds - Array of selected run IDs
+ * @returns {object|null} The rendered sweeps tab or null if invalid
  */
 export const SweepsTab = ({ runs, selectedRunIds }) => {
   const [selectedMetric, setSelectedMetric] = useState(null);
@@ -37,6 +41,11 @@ export const SweepsTab = ({ runs, selectedRunIds }) => {
     updateLabels
   } = useLayoutManager();
 
+  /**
+   * Toggles the visibility of a visualization by its key
+   * @param {string} vizKey - The unique key of the visualization to toggle
+   * @returns {void}
+   */
   const toggleVisualizationVisibility = (vizKey) => {
     setHiddenVisualizations(prev => {
       const next = new Set(prev);
@@ -66,12 +75,12 @@ export const SweepsTab = ({ runs, selectedRunIds }) => {
     if (!sweepData?.valid || !runs || selectedRunIds.length < 3) {
       return null;
     }
-    // Get original runs (not the transformed sweep runs) - calculateParameterImportance needs full run structure
+    // Get original runs (not the transformed sweep runs) - calculateParameterCorrelation needs full run structure
     const originalRuns = runs.filter(r => selectedRunIds.includes(r.run_id));
 
     // Calculate correlation for all varying parameters
     const varyingParamNames = sweepData.varyingParams.map(p => p.name);
-    return calculateParameterImportance(
+    return calculateParameterCorrelation(
       originalRuns,
       varyingParamNames,
       sweepData.availableMetrics,

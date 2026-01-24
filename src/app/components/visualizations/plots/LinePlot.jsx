@@ -7,9 +7,44 @@ import { getChartColor, CHART_PADDING } from '../../../../core/utils/constants';
 import { formatYAxisValue } from '../../../../core/utils/formatters';
 
 /**
- * Line Plot for Series data
- * Displays multiple time series on a single chart
- * Expects data format: { xLabel: string, datasets: [{label, data: [{x, y}]}] }
+ * Line Plot component for time series visualization
+ *
+ * Renders multi-series line charts with interactive tooltips, auto-scaled axes,
+ * and responsive resizing. Optimized for training metrics (loss curves, accuracy over time).
+ *
+ * Features:
+ * - Multi-series overlay (multiple lines on one chart with color coding)
+ * - Interactive tooltips showing exact values on hover
+ * - Auto-scaled Y-axis based on data range
+ * - Grid lines for easier value reading
+ * - Legend showing series names and colors
+ * - HiDPI (Retina) display support
+ * - Responsive to container size changes
+ *
+ * Data format:
+ * ```
+ * {
+ *   xLabel: "Epoch",         // X-axis label
+ *   datasets: [
+ *     {
+ *       label: "train_loss",  // Series name
+ *       data: [
+ *         { x: 0, y: 0.5 },   // Individual points
+ *         { x: 1, y: 0.3 },
+ *         { x: 2, y: 0.2 }
+ *       ]
+ *     },
+ *     { label: "val_loss", data: [...] }
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {object} props.data - Plot data with datasets and labels
+ * @param {string} props.data.xLabel - X-axis label (e.g., "Epoch", "Step")
+ * @param {Array<object>} props.data.datasets - Array of series to plot
+ * @param {string} [props.title] - Optional plot title
+ * @returns {React.ReactElement} Canvas-based line plot with interactive tooltip
  */
 const LinePlot = ({ data, title }) => {
   const canvasRef = useRef(null);

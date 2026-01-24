@@ -2,12 +2,38 @@ import React, { useEffect } from 'react';
 import './TabbedInterface.scss';
 
 /**
- * Professional tabbed interface with fixed tabs
+ * Tabbed Interface component for main content area navigation
  *
- * @param {Array} tabs - Array of tab objects with { id, label, content }
- * @param {Array} visibleTabs - Array of visible tab IDs
- * @param {string} activeTab - Currently active tab ID
- * @param {Function} onTabChange - Callback when active tab changes
+ * Tab bar for switching between different analysis views (Plots, Tables, Sweeps, etc.).
+ * Handles tab visibility and ensures a valid tab is always active.
+ *
+ * Features:
+ * - Dynamic tab visibility (tabs can be shown/hidden via View menu)
+ * - Active tab highlighting
+ * - Auto-switches to first visible tab if active tab hidden
+ * - Empty state when no tabs visible
+ * - Fixed tab bar at top
+ * - Content area below tabs
+ *
+ * Typical tabs:
+ * - Plots: Auto-discovered visualizations
+ * - Tables: Metric comparison tables
+ * - Sweeps: Hyperparameter sweep analysis
+ * - Lineage: Provenance graph
+ * - Artifacts: File browser
+ * - Chat: LLM experiment analysis
+ * - Notes: Rich-text note taking
+ *
+ * @param {object} props - Component props
+ * @param {Array<object>} [props.tabs=[]] - All available tabs:
+ *   - id: string - Unique tab identifier
+ *   - label: string - Display name
+ *   - content: React.ReactNode - Tab content component
+ * @param {Array<string>} [props.visibleTabs=[]] - IDs of tabs to show
+ * @param {string} props.activeTab - Currently active tab ID
+ * @param {function} props.onTabChange - Callback when user switches tabs
+ *   Signature: (tabId: string) => void
+ * @returns {React.ReactElement} Tab bar with content area
  */
 export const TabbedInterface = ({
   tabs = [],

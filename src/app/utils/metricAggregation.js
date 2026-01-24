@@ -1,13 +1,34 @@
 /**
  * Client-side metric aggregation utilities
- * FULLY GENERIC - no assumptions about data structure
+ *
+ * Provides generic aggregation functions for extracting summary statistics from
+ * metrics logged across training runs. Designed to be fully data-structure agnostic,
+ * working with any x-axis field (epoch, step, timestamp, etc.) and any metric names.
+ *
+ * Key capabilities:
+ * - Auto-detect x-axis fields (epoch, step, etc.)
+ * - Aggregate metrics (min, max, final, best)
+ * - Extract metrics from Series primitives in structured_data
+ * - Find optimal values based on optimization metrics (e.g., accuracy at min loss)
+ * - Discover available metrics across runs
+ *
+ * Used primarily by the Tables tab for displaying run comparisons.
  */
 
 /**
- * Detect x-axis field from metrics array
- * Generic: finds integer fields that appear in all entries
- * @param {Array} metricsArray - Array of metric objects
- * @returns {string|null} - X-axis field name or null
+ * Detect x-axis field from metrics array using heuristics
+ *
+ * Finds integer-valued fields that could represent the x-axis (epoch, step, iteration).
+ * If multiple candidates exist, prefers smaller values (epoch over timestamp).
+ *
+ * Algorithm:
+ * 1. Find all integer-valued fields (excludes internal fields starting with _)
+ * 2. If only one integer field, use it
+ * 3. If multiple, prefer field with smallest value (epoch=10 over timestamp=1674...)
+ *
+ * @param {Array<object>} metricsArray - Array of metric records
+ *   Example: [{ epoch: 0, loss: 0.5 }, { epoch: 1, loss: 0.3 }]
+ * @returns {string|null} X-axis field name (e.g., "epoch", "step") or null if none found
  */
 const detectXAxisField = (metricsArray) => {
   if (!metricsArray || metricsArray.length === 0) return null;
@@ -44,11 +65,33 @@ const getValueAtX = (metricsArray, metricKey, xValue, xAxisField) => {
 };
 
 /**
- * Generic aggregation function - replaces getBestValue, getMinValue, getMaxValue
- * @param {Array} metricsArray - Array of metric objects
- * @param {string} metricKey - The metric field name
- * @param {string} mode - 'min', 'max', or 'best' (auto min/max based on metric name)
- * @returns {{value: number, xValue: number, xField: string}|null} - Aggregated value and its x-axis point
+ * Generic aggregation function for finding min/max/best metric values
+ *
+ * Scans through metrics array and finds the optimal value according to the specified mode.
+ * Returns both the value and the x-axis coordinate where it occurred.
+ *
+ * Modes:
+ * - 'min': Find minimum value (good for loss, error)
+ * - 'max': Find maximum value (good for accuracy, F1)
+ * - 'best': Auto-detect based on metric name (min for loss/error, max for others)
+ *
+ * @param {Array<object>} metricsArray - Array of metric records with x-axis and metric values
+ * @param {string} metricKey - The metric field to aggregate (e.g., "loss", "accuracy")
+ * @param {string} mode - Aggregation mode: 'min', 'max', or 'best'
+ * @returns {{value: number, xValue: number, xField: string}|null} Result object:
+ *   - value: The aggregated metric value
+ *   - xValue: X-axis value where this occurred (e.g., epoch 42)
+ *   - xField: Name of x-axis field (e.g., "epoch")
+ *   Returns null if no valid numeric values found
+ *
+ * @example
+ * const metrics = [
+ *   { epoch: 0, loss: 0.5 },
+ *   { epoch: 1, loss: 0.3 },
+ *   { epoch: 2, loss: 0.2 }
+ * ];
+ * aggregateValue(metrics, 'loss', 'min');
+ * // Returns: { value: 0.2, xValue: 2, xField: 'epoch' }
  */
 const aggregateValue = (metricsArray, metricKey, mode) => {
   if (!metricsArray || metricsArray.length === 0) return null;
@@ -60,8 +103,20 @@ const aggregateValue = (metricsArray, metricKey, mode) => {
   // Determine comparison function based on mode
   let shouldUpdate;
   if (mode === 'min') {
+    /**
+     * Check if new value is less than current value.
+     * @param {number} newVal - New value to compare
+     * @param {number} currentVal - Current value
+     * @returns {boolean} True if new value is less
+     */
     shouldUpdate = (newVal, currentVal) => newVal < currentVal;
   } else if (mode === 'max') {
+    /**
+     * Check if new value is greater than current value.
+     * @param {number} newVal - New value to compare
+     * @param {number} currentVal - Current value
+     * @returns {boolean} True if new value is greater
+     */
     shouldUpdate = (newVal, currentVal) => newVal > currentVal;
   } else if (mode === 'best') {
     const isLossMetric = metricKey.includes('loss') || metricKey.includes('error');
@@ -136,7 +191,7 @@ const getFinalValue = (metricsArray, metricKey) => {
  * Discover metrics organized by stream
  * Returns a map of streamId -> metric keys
  * @param {Array} runs - Array of run objects
- * @returns {Object} - Object mapping streamId to array of metric keys
+ * @returns {object} - Object mapping streamId to array of metric keys
  */
 export const discoverMetricsByStream = (runs) => {
   const seriesMetrics = {}; // seriesName -> Set of metric keys
@@ -177,7 +232,7 @@ export const discoverMetricsByStream = (runs) => {
 /**
  * Discover Series primitives from structured_data (NEW - uses primitives)
  * @param {Array} runs - Array of run objects
- * @returns {Object} - { seriesName: { metricKeys: [], runs: [{ run_id, data: [] }] } }
+ * @returns {object} - { seriesName: { metricKeys: [], runs: [{ run_id, data: [] }] } }
  */
 
 /**
@@ -203,15 +258,39 @@ const getMaxValue = (metricsArray, metricKey) => {
 };
 
 /**
- * Get value based on aggregation mode
- * Searches structured_data Series primitives for the metric
- * @param {Object} run - Run object
- * @param {string} metricKey - The metric field to display
- * @param {Object} aggregation - Aggregation configuration
- * @param {string} aggregation.mode - 'min', 'max', 'final', or x-axis value
- * @param {string} aggregation.optimizeMetric - Metric to optimize (for min/max modes)
- * @param {string} aggregation.streamId - Optional: specific series to look in
- * @returns {number|null} - Value at the specified mode
+ * Get metric value using specified aggregation strategy
+ *
+ * This is the main entry point for extracting a single aggregated metric value from a run.
+ * Used extensively by the Tables tab to display summary statistics.
+ *
+ * The function searches through the run's structured_data for Series primitives containing
+ * the requested metric, then applies the specified aggregation logic.
+ *
+ * Aggregation modes:
+ * - 'min': Return metricKey value at the point where optimizeMetric is minimized
+ *   Example: "Show accuracy when loss was lowest"
+ * - 'max': Return metricKey value at the point where optimizeMetric is maximized
+ *   Example: "Show loss when accuracy was highest"
+ * - 'final': Return the last logged value of metricKey
+ * - Numeric value: Return metricKey value at that specific x-axis point
+ *
+ * @param {object} run - Run object with structured_data containing Series primitives
+ * @param {string} metricKey - The metric to extract (e.g., "accuracy", "val_loss")
+ * @param {object} [aggregation={mode:'min',optimizeMetric:'loss'}] - Aggregation config:
+ *   - mode: string - 'min', 'max', 'final', or numeric x-axis value
+ *   - optimizeMetric: string - Metric to optimize for min/max modes
+ *   - streamId: string (optional) - Specific Series primitive to search in
+ * @returns {number|null} Aggregated metric value, or null if metric not found
+ *
+ * @example
+ * // Get final validation loss
+ * getMetricValue(run, 'val_loss', { mode: 'final' });
+ *
+ * // Get accuracy at the point where loss was minimized
+ * getMetricValue(run, 'accuracy', { mode: 'min', optimizeMetric: 'loss' });
+ *
+ * // Get loss at epoch 50
+ * getMetricValue(run, 'loss', { mode: 50 });
  */
 export const getMetricValue = (run, metricKey, aggregation = { mode: 'min', optimizeMetric: 'loss' }) => {
   if (!run.structured_data) return null;
@@ -223,11 +302,11 @@ export const getMetricValue = (run, metricKey, aggregation = { mode: 'min', opti
 };
 
 /**
- * Extract metrics array from Series primitives in structured_data
- * @param {Object} structured_data - Run's structured_data object
+ * Extract metrics array from Series primitives in structured_data.
+ * @param {object} structured_data - Run's structured_data object
  * @param {string} metricKey - The metric field to find
  * @param {string} seriesId - Optional: specific series to look in
- * @returns {Array|null} - Array of metric objects [{x, metricKey}, ...]
+ * @returns {Array<object>|null} Array of metric objects or null
  */
 function extractMetricsFromSeries(structured_data, metricKey, seriesId = null) {
   for (const [name, entries] of Object.entries(structured_data)) {
@@ -267,11 +346,11 @@ function extractMetricsFromSeries(structured_data, metricKey, seriesId = null) {
 }
 
 /**
- * Apply aggregation logic to metrics array
- * @param {Array} metricsArray - Array of metric objects
+ * Apply aggregation logic to metrics array.
+ * @param {Array<object>} metricsArray - Array of metric objects
  * @param {string} metricKey - The metric field to display
- * @param {Object} aggregation - Aggregation configuration
- * @returns {number|null} - Aggregated value
+ * @param {object} aggregation - Aggregation configuration
+ * @returns {number|null} Aggregated value or null
  */
 function applyAggregation(metricsArray, metricKey, aggregation) {
   const { mode, optimizeMetric } = aggregation;

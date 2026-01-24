@@ -1,4 +1,60 @@
-"""Context providers - automatically detect environment and add tags."""
+"""Context providers for automatic environment detection and tagging.
+
+This module implements a plugin-based system for detecting the execution context
+(git repository, Jupyter notebook, Docker container) and automatically adding
+relevant metadata tags to runs. This enables run reproducibility and environment
+tracking without requiring manual configuration.
+
+Architecture:
+    The module follows a provider pattern with a registry:
+
+    1. Base class (ContextProvider): Defines interface (in_context, tags)
+    2. Concrete providers: GitContext, NotebookContext, DockerContext
+    3. Registry (CONTEXT_PROVIDERS): List of enabled providers
+    4. Collector (collect_context_tags): Iterates over providers and aggregates tags
+
+Detection Strategies:
+
+    Git Detection:
+        - Run 'git rev-parse HEAD' command to check if in git repository
+        - If succeeds, we're in a git repo; if fails, we're not
+        - Extract: commit hash, branch name, remote URL, dirty status
+        - Capture diff if dirty (uncommitted changes exist)
+        - All git commands use 5-second timeout to avoid hangs
+        - stderr redirected to DEVNULL to suppress error messages
+
+    Notebook Detection:
+        - Check if 'ipykernel' or 'IPython' modules are loaded in sys.modules
+        - This works for Jupyter, JupyterLab, Google Colab, VSCode notebooks
+        - Tag: source.type = "NOTEBOOK"
+        - Future: Could extract cell number, notebook path via IPython API
+
+    Docker Detection:
+        - Check if /.dockerenv file exists (created by Docker runtime)
+        - This is the most reliable cross-platform Docker detection method
+        - Tag: docker.container = "true"
+        - Future: Read DOCKER_IMAGE, DOCKER_TAG from environment variables
+
+Tag Aggregation:
+    collect_context_tags() iterates over all registered providers:
+    1. Call provider.in_context() to check if context is active
+    2. If True, call provider.tags() to get tag dictionary
+    3. Merge tags into aggregated dictionary (later providers override earlier)
+    4. If any provider raises exception, silently continue (graceful degradation)
+    5. Return merged tags dictionary
+
+Why only Git is enabled by default:
+    The CONTEXT_PROVIDERS registry only includes GitContext by default.
+    NotebookContext and DockerContext are defined but not registered to avoid
+    polluting tags unnecessarily. Users running in notebooks/Docker likely
+    want to track this explicitly, not automatically.
+
+Design Philosophy:
+    - Zero configuration: Automatic detection, no setup required
+    - Fail-safe: All detection wrapped in try/except, never crash user code
+    - Extensible: Easy to add new providers (CI/CD, Kubernetes, Slurm, etc.)
+    - Minimal overhead: Only run detection once at run initialization
+"""
 
 import os
 import subprocess

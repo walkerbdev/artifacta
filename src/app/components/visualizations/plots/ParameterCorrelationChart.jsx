@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { calculateParameterImportance, getShortParamName } from '@/app/utils/comparisonPlotDiscovery';
+import { calculateParameterCorrelation, getShortParamName } from '@/app/utils/comparisonPlotDiscovery';
 import { drawTopLegend, getChartFont } from '@/app/hooks/useCanvasSetup';
 import { useResponsiveCanvas } from '@/app/hooks/useResponsiveCanvas';
 import { CHART_PADDING } from '@/core/utils/constants';
@@ -11,6 +11,13 @@ import { CHART_PADDING } from '@/core/utils/constants';
  * Displays:
  * - Correlation: Linear relationship between parameter and metric (-1 to 1)
  * - Visual bars: Green for positive, red for negative correlation
+ * @param {object} props - Component props
+ * @param {string[]} props.hyperparameters - Array of hyperparameter names
+ * @param {string[]} props.availableMetrics - Array of available metric names
+ * @param {string} props.defaultMetric - Default metric to display
+ * @param {object} props.importance - Pre-calculated parameter importance data
+ * @param {Array} props.runs - Array of run objects with hyperparameter and metric data
+ * @returns {React.ReactElement} The rendered component
  */
 const ParameterCorrelationChart = ({ hyperparameters, availableMetrics, defaultMetric, importance: defaultImportance, runs }) => {
   const canvasRef = useRef(null);
@@ -26,14 +33,20 @@ const ParameterCorrelationChart = ({ hyperparameters, availableMetrics, defaultM
     }
   }, [selectedMetric, availableMetrics]);
 
-  // Recalculate importance when aggregation changes
+  // Recalculate correlation when aggregation changes
   const importance = useMemo(() => {
     if (!runs || aggregation === 'last') return defaultImportance; // Use pre-calculated if default
 
     // Recalculate with new aggregation
-    return calculateParameterImportance(runs, hyperparameters, availableMetrics, aggregation);
+    return calculateParameterCorrelation(runs, hyperparameters, availableMetrics, aggregation);
   }, [runs, hyperparameters, availableMetrics, aggregation, defaultImportance]);
 
+  /**
+   * Draws the parameter correlation chart on canvas
+   * @param {number} width - Canvas width
+   * @param {number} height - Canvas height
+   * @returns {void}
+   */
   const drawChart = useCallback((width, height) => {
     const canvas = canvasRef.current;
     if (!canvas || !importance || !selectedMetric || !hyperparameters) return;

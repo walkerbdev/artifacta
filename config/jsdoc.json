@@ -1,0 +1,32 @@
+{
+  "source": {
+    "include": [
+      "src/app"
+    ],
+    "includePattern": "\\.(js|jsx)$",
+    "excludePattern": "(node_modules|test|__tests__|.test|.spec)"
+  },
+  "opts": {
+    "destination": "docs/_build/jsdoc",
+    "recurse": true
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true,
+      "includeDate": false
+    }
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "markdown": {
+    "hardwrap": false,
+    "idInHeadings": true
+  }
+}

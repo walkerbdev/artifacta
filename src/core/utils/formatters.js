@@ -5,8 +5,7 @@
 
 /**
  * Format number for Y-axis labels with smart units
- * Handles bytes specially, and uses K/M/B/T suffixes for large numbers
- *
+ * Handles bytes specially, and uses K/M/B/T suffixes for large numbers.
  * @param {number} value - The value to format
  * @param {string} title - Optional title to determine if value represents bytes
  * @returns {string} Formatted string
@@ -40,8 +39,7 @@ export function formatYAxisValue(value, title = '') {
 
 /**
  * Convert snake_case or kebab-case to Title Case
- * Example: "train_loss" -> "Train Loss"
- *
+ * Example: "train_loss" -> "Train Loss".
  * @param {string} str - String to convert
  * @returns {string} Title cased string
  */

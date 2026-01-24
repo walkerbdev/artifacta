@@ -26,7 +26,7 @@ def test_basic_usage():
     assert (run.log_dir / "metrics.jsonl").exists()
     assert (run.log_dir / "system.jsonl").exists()
 
-    print(f"✅ Test passed! Files created at: {run.log_dir}")
+    print(f"Test passed! Files created at: {run.log_dir}")
 
 
 if __name__ == "__main__":

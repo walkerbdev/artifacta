@@ -4,8 +4,8 @@
  */
 
 /**
- * Escapes a field for CSV format
- * @param {*} field - The field to escape
+ * Escapes a field for CSV format.
+ * @param {string|number|boolean} field - The field to escape
  * @returns {string} Escaped field
  */
 function escapeCSV(field) {
@@ -17,8 +17,8 @@ function escapeCSV(field) {
 }
 
 /**
- * Formats a value for CSV export
- * @param {*} value - The value to format
+ * Formats a value for CSV export.
+ * @param {string|number|null|undefined} value - The value to format
  * @param {number} decimals - Number of decimal places for numbers (default: 4)
  * @returns {string} Formatted value
  */
@@ -74,9 +74,9 @@ function getDisplayName(key) {
 
 /**
  * Groups series by their metric signature
- * Series with the same set of metrics are grouped together
- * @param {Object} metricsByStream - Object mapping stream names to metric keys
- * @returns {Object} Series groups indexed by signature
+ * Series with the same set of metrics are grouped together.
+ * @param {object} metricsByStream - Object mapping stream names to metric keys
+ * @returns {object} Series groups indexed by signature
  */
 function groupSeriesBySignature(metricsByStream) {
   const seriesGroups = {};
@@ -105,12 +105,12 @@ function filterRunsWithSeries(runs) {
 }
 
 /**
- * Builds CSV rows for a specific series group
- * @param {Array} runs - Runs to include in this group
- * @param {Array} metricKeys - Metric keys for this group
- * @param {Array} seriesGroup - Series information for this group
- * @param {Function} getMetricValue - Function to extract metric values
- * @param {Object} aggSettings - Aggregation settings (mode, optimizeMetric)
+ * Builds CSV rows for a specific series group.
+ * @param {Array<object>} runs - Runs to include in this group
+ * @param {Array<string>} metricKeys - Metric keys for this group
+ * @param {Array<object>} seriesGroup - Series information for this group
+ * @param {(run: object, key: string, options: object) => string|number} getMetricValue - Function to extract metric values
+ * @param {object} aggSettings - Aggregation settings (mode, optimizeMetric)
  * @returns {Array<Array<string>>} 2D array of CSV rows (header + data)
  */
 function buildSeriesGroupCSV(runs, metricKeys, seriesGroup, getMetricValue, aggSettings) {
@@ -152,11 +152,12 @@ function getSeriesGroupFilename(seriesGroup) {
 
 /**
  * Exports all series groups as separate CSV files
- * Main orchestration function that handles the complete export workflow
- * @param {Array} runs - All runs to export
- * @param {Object} metricsByStream - Metrics organized by stream
- * @param {Object} streamAggregation - Aggregation settings per group
- * @param {Function} getMetricValue - Function to extract metric values
+ * Main orchestration function that handles the complete export workflow.
+ * @param {Array<object>} runs - All runs to export
+ * @param {object} metricsByStream - Metrics organized by stream
+ * @param {object} streamAggregation - Aggregation settings per group
+ * @param {(run: object, key: string, options: object) => string|number} getMetricValue - Function to extract metric values
+ * @returns {void}
  */
 export function exportSeriesGroupsAsCSV(runs, metricsByStream, streamAggregation, getMetricValue) {
   if (runs.length === 0) return;

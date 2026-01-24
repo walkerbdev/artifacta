@@ -34,7 +34,7 @@ def test_artifact_chain():
         # ============================================================
         # RUN 1: TRAINING - Produces model as OUTPUT
         # ============================================================
-        print("🔵 Run 1: Training")
+        print("Run 1: Training")
         run_train = ds.init(
             project="ml-pipeline",
             name="train-resnet",
@@ -56,13 +56,13 @@ def test_artifact_chain():
         run_train.log_output(model_path, name="trained_model")
         print("   Logged: trained_model.pt as OUTPUT")
 
-        print("   ✅ Training complete\n")
+        print("   Training complete\n")
         time.sleep(0.5)
 
         # ============================================================
         # RUN 2: INFERENCE - Uses model as INPUT
         # ============================================================
-        print("🟢 Run 2: Inference")
+        print("Run 2: Inference")
         run_inference = ds.init(
             project="ml-pipeline",
             name="inference-batch-1",
@@ -91,13 +91,13 @@ def test_artifact_chain():
             ),
         )
 
-        print("   ✅ Inference complete\n")
+        print("   Inference complete\n")
         time.sleep(0.5)
 
         # ============================================================
         # RUN 3: ANOTHER INFERENCE - Also uses same model as INPUT
         # ============================================================
-        print("🟢 Run 3: Inference (Batch 2)")
+        print("Run 3: Inference (Batch 2)")
         run_inference_2 = ds.init(
             project="ml-pipeline",
             name="inference-batch-2",
@@ -125,18 +125,18 @@ def test_artifact_chain():
             ),
         )
 
-        print("   ✅ Inference complete\n")
+        print("   Inference complete\n")
 
         print("=" * 60)
-        print("✅ TEST COMPLETE!")
+        print("TEST COMPLETE!")
         print("=" * 60)
-        print("\n📊 Check the UI Lineage view (select all 3 runs):")
+        print("\nCheck the UI Lineage view (select all 3 runs):")
         print("   Expected graph:")
         print()
         print("                     trained_model.pt")
         print("                            |")
-        print("   train-resnet ────────────┴───────────→ inference-batch-1")
-        print("                            └───────────→ inference-batch-2")
+        print("   train-resnet → inference-batch-1")
+        print("                            → inference-batch-2")
         print()
         print("   - train-resnet has trained_model as OUTPUT (right side)")
         print("   - inference-batch-1 has trained_model as INPUT (left side)")

@@ -4,15 +4,25 @@
  * Eliminates duplicate fetch/try-catch patterns across the codebase.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
+/**
+ * Centralized API client for backend communication.
+ */
 class ApiClient {
+  /**
+   * Creates a new ApiClient instance.
+   * @param {string} baseUrl - Base URL for API requests
+   */
   constructor(baseUrl = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
 
   /**
-   * Generic request method with centralized error handling
+   * Generic request method with centralized error handling.
+   * @param {string} endpoint - API endpoint path
+   * @param {object} options - Fetch options
+   * @returns {Promise<object>} Response object
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
@@ -26,7 +36,9 @@ class ApiClient {
   }
 
   /**
-   * GET request returning JSON
+   * GET request returning JSON.
+   * @param {string} endpoint - API endpoint path
+   * @returns {Promise<object>} Parsed JSON response
    */
   async get(endpoint) {
     const response = await this.request(endpoint);
@@ -34,7 +46,9 @@ class ApiClient {
   }
 
   /**
-   * GET request returning raw Response (for CSV, images, etc.)
+   * GET request returning raw Response (for CSV, images, etc.).
+   * @param {string} endpoint - API endpoint path
+   * @returns {Promise<object>} Raw Response object
    */
   async getRaw(endpoint) {
     return this.request(endpoint);
@@ -43,7 +57,13 @@ class ApiClient {
   // ========== Endpoints Actually Used ==========
 
   /**
-   * Get all runs with filters
+   * Get all runs with filters.
+   * @param {object} options - Query options
+   * @param {number} options.limit - Maximum number of runs to return
+   * @param {boolean} options.includeTags - Include tags in response
+   * @param {boolean} options.includeParams - Include parameters in response
+   * @param {boolean} options.includeMetadata - Include metadata in response
+   * @returns {Promise<Array<object>>} Array of run objects
    */
   async getRuns(options = {}) {
     const {
@@ -62,35 +82,47 @@ class ApiClient {
   }
 
   /**
-   * Get single run with full details
+   * Get single run with full details.
+   * @param {string} runId - Run ID
+   * @returns {Promise<object>} Run object with full details
    */
   async getRun(runId) {
     return this.get(`/api/runs/${runId}`);
   }
 
   /**
-   * Get metrics for a run
+   * Get metrics for a run.
+   * @param {string} runId - Run ID
+   * @returns {Promise<object>} Metrics data
    */
   async getRunMetrics(runId) {
     return this.get(`/api/runs/${runId}/metrics`);
   }
 
   /**
-   * Get artifacts for a run
+   * Get artifacts for a run.
+   * @param {string} runId - Run ID
+   * @returns {Promise<Array<object>>} Array of artifact objects
    */
   async getArtifacts(runId) {
     return this.get(`/api/artifacts/${runId}`);
   }
 
   /**
-   * Get artifact links (with input/output role) for a run
+   * Get artifact links (with input/output role) for a run.
+   * @param {string} runId - Run ID
+   * @returns {Promise<Array<object>>} Array of artifact link objects
    */
   async getArtifactLinks(runId) {
     return this.get(`/api/runs/${runId}/artifact-links`);
   }
 
   /**
-   * Get artifact preview (raw response for CSV/JSON/image handling)
+   * Get artifact preview (raw response for CSV/JSON/image handling).
+   * @param {string} artifactId - Artifact ID
+   * @param {number} offset - Offset for pagination
+   * @param {number} limit - Maximum number of items
+   * @returns {Promise<object>} Raw response for artifact preview
    */
   async getArtifactPreview(artifactId, offset = 0, limit = 100) {
     const params = new URLSearchParams({
@@ -101,7 +133,9 @@ class ApiClient {
   }
 
   /**
-   * Get artifact download URL
+   * Get artifact download URL.
+   * @param {string} artifactId - Artifact ID
+   * @returns {string} Download URL for artifact
    */
   getArtifactDownloadUrl(artifactId) {
     return `${this.baseUrl}/api/artifact/${artifactId}/download`;
@@ -110,14 +144,17 @@ class ApiClient {
   // ========== Project Endpoints ==========
 
   /**
-   * Get all projects (explicit + implicit from runs)
+   * Get all projects (explicit + implicit from runs).
+   * @returns {Promise<Array<object>>} Array of project objects
    */
   async getProjects() {
     return this.get('/api/projects');
   }
 
   /**
-   * Create a new project
+   * Create a new project.
+   * @param {string} projectId - Project ID
+   * @returns {Promise<object>} Created project object
    */
   async createProject(projectId) {
     const response = await this.request('/api/projects', {
@@ -131,21 +168,29 @@ class ApiClient {
   // ========== Project Notes Endpoints ==========
 
   /**
-   * Get all notes for a project
+   * Get all notes for a project.
+   * @param {string} projectId - Project ID
+   * @returns {Promise<Array<object>>} Array of note objects
    */
   async getProjectNotes(projectId) {
     return this.get(`/api/projects/${projectId}/notes`);
   }
 
   /**
-   * Get a specific note
+   * Get a specific note.
+   * @param {string} projectId - Project ID
+   * @param {string} noteId - Note ID
+   * @returns {Promise<object>} Note object
    */
   async getProjectNote(projectId, noteId) {
     return this.get(`/api/projects/${projectId}/notes/${noteId}`);
   }
 
   /**
-   * Create a new note
+   * Create a new note.
+   * @param {string} projectId - Project ID
+   * @param {object} data - Note data
+   * @returns {Promise<object>} Created note object
    */
   async createProjectNote(projectId, data) {
     const response = await this.request(`/api/projects/${projectId}/notes`, {
@@ -157,7 +202,11 @@ class ApiClient {
   }
 
   /**
-   * Update an existing note
+   * Update an existing note.
+   * @param {string} projectId - Project ID
+   * @param {string} noteId - Note ID
+   * @param {object} data - Updated note data
+   * @returns {Promise<object>} Updated note object
    */
   async updateProjectNote(projectId, noteId, data) {
     const response = await this.request(`/api/projects/${projectId}/notes/${noteId}`, {
@@ -169,7 +218,10 @@ class ApiClient {
   }
 
   /**
-   * Delete a note
+   * Delete a note.
+   * @param {string} projectId - Project ID
+   * @param {string} noteId - Note ID
+   * @returns {Promise<void>}
    */
   async deleteProjectNote(projectId, noteId) {
     await this.request(`/api/projects/${projectId}/notes/${noteId}`, {
@@ -178,14 +230,19 @@ class ApiClient {
   }
 
   /**
-   * Get attachments for a note
+   * Get attachments for a note.
+   * @param {string} noteId - Note ID
+   * @returns {Promise<Array<object>>} Array of attachment objects
    */
   async getNoteAttachments(noteId) {
     return this.get(`/api/notes/${noteId}/attachments`);
   }
 
   /**
-   * Upload attachment to a note
+   * Upload attachment to a note.
+   * @param {string} noteId - Note ID
+   * @param {File} file - File to upload
+   * @returns {Promise<object>} Uploaded attachment object
    */
   async uploadAttachment(noteId, file) {
     const formData = new FormData();
@@ -199,7 +256,9 @@ class ApiClient {
   }
 
   /**
-   * Delete an attachment
+   * Delete an attachment.
+   * @param {string} attachmentId - Attachment ID
+   * @returns {Promise<void>}
    */
   async deleteAttachment(attachmentId) {
     await this.request(`/api/attachments/${attachmentId}`, {
@@ -208,7 +267,9 @@ class ApiClient {
   }
 
   /**
-   * Get attachment download URL
+   * Get attachment download URL.
+   * @param {string} attachmentId - Attachment ID
+   * @returns {string} Download URL for attachment
    */
   getAttachmentDownloadUrl(attachmentId) {
     return `${this.baseUrl}/api/attachments/${attachmentId}/download`;

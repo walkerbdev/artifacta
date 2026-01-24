@@ -3,6 +3,37 @@ import { NodeViewWrapper } from '@tiptap/react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+/**
+ * File Attachment Node component for TipTap editor
+ *
+ * Custom TipTap node that renders file attachments with appropriate previews
+ * directly inline in the editor. Used by FileAttachmentExtension.
+ *
+ * Supported file types:
+ * - Code/text files: Syntax-highlighted preview (Python, JS, JSON, etc.)
+ * - PDFs: Embedded iframe viewer
+ * - Videos: HTML5 video player (MP4, WEBM)
+ * - Audio: HTML5 audio player (MP3, WAV)
+ * - Other files: Download card with file info
+ *
+ * Features:
+ * - Type-specific rendering based on MIME type
+ * - Syntax highlighting for code files (Prism)
+ * - Inline preview for media files
+ * - Download button for all files
+ * - File size display
+ * - Responsive layouts
+ *
+ * @param {object} props - Component props
+ * @param {object} props.node - TipTap node object with attrs:
+ *   - url: string - File URL for download/preview
+ *   - fileName: string - Display name
+ *   - fileSize: number - Size in KB
+ *   - fileType: string - MIME type
+ *   - textContent: string (optional) - For code preview
+ *   - language: string (optional) - Syntax highlighting language
+ * @returns {React.ReactElement} Rendered file attachment with preview
+ */
 export const FileAttachmentComponent = ({ node }) => {
   const { url, fileName, fileSize, fileType, textContent, language } = node.attrs;
 

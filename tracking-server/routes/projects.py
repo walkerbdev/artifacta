@@ -1,5 +1,105 @@
 # mypy: disable-error-code="misc,untyped-decorator,union-attr,no-any-return,arg-type"
-"""Project notes and attachments endpoints."""
+"""Project notes and attachments for lab notebook functionality.
+
+This module implements a lab notebook system where users can create markdown notes,
+attach files (PDFs, images, videos), and organize experiments by project. It supports
+both explicit projects (created via API) and implicit projects (inferred from runs).
+
+Architecture:
+    - Projects: Logical grouping of runs and notes
+    - ProjectNotes: Markdown content with title and timestamps
+    - ProjectNoteAttachments: Files attached to notes (hash-based storage)
+
+Project Types:
+
+    1. **Explicit Projects**:
+       - Created via POST /api/projects
+       - Have entry in Projects table
+       - Tracked via created_at and updated_at timestamps
+       - Can exist without any runs
+
+    2. **Implicit Projects**:
+       - Inferred from Run.project field
+       - No entry in Projects table
+       - Automatically discovered when listing projects
+       - Created on-the-fly when first run uses project name
+
+    List projects merges both types for unified UX.
+
+Note Management:
+
+    CREATE: POST /api/projects/{project_id}/notes
+        - Auto-creates project if doesn't exist
+        - Stores markdown content
+        - Tracks created_at and updated_at
+
+    UPDATE: PUT /api/projects/{project_id}/notes/{note_id}
+        - Partial update (only fields provided)
+        - Updates updated_at timestamp
+        - Keeps created_at unchanged
+
+    DELETE: DELETE /api/projects/{project_id}/notes/{note_id}
+        - Cascades to attachments (database ON DELETE CASCADE)
+        - Deletes attachment files from disk
+        - Returns 404 if note not found
+
+Attachment Storage:
+
+    Files stored with hash-based paths for:
+        - Deduplication (same file uploaded multiple times)
+        - Integrity verification (detect corruption)
+        - Content-addressable lookup
+
+    Storage path format: uploads/{first_2_chars_of_hash}/{uuid}{ext}
+    Example: uploads/ab/c3f7d4e8-1234-5678-9abc-def012345678.pdf
+
+    Upload flow:
+        1. Read file content and compute SHA256 hash
+        2. Generate UUID for unique filename
+        3. Extract extension from original filename
+        4. Create directory structure (e.g., uploads/ab/)
+        5. Write file to disk
+        6. Create ProjectNoteAttachment record in database
+
+Inline Viewing vs Download:
+
+    GET /attachments/{attachment_id}/download?inline=true:
+        - inline=true: Sets Content-Disposition: inline
+          - Browser displays PDF/image/video in iframe/tab
+          - Used for preview in UI
+        - inline=false: Sets Content-Disposition: attachment
+          - Browser triggers download dialog
+          - Used for explicit downloads
+
+    MIME type determines browser behavior:
+        - application/pdf: Browser PDF viewer
+        - image/*: Display inline
+        - video/*: HTML5 video player
+        - audio/*: HTML5 audio player
+        - Other: Trigger download
+
+File Cleanup:
+
+    When attachment is deleted:
+        1. Delete database record (ProjectNoteAttachment)
+        2. Delete file from disk (PROJECT_ROOT / storage_path)
+        3. If file doesn't exist, continue (already deleted)
+        4. Ignore errors (best effort cleanup)
+
+Database Session Management:
+
+    Manual session management (unlike runs.py which uses Depends):
+        - session = db.get_session()
+        - try/except/finally with session.close()
+        - Manual commit() and rollback()
+        - Required for attachment file operations (need transaction control)
+
+Error Handling:
+    - 404 Not Found: Project/note/attachment doesn't exist
+    - 400 Bad Request: Project already exists
+    - 500 Internal Server Error: Database errors, file I/O errors
+    - All errors logged with logger.error()
+"""
 
 import hashlib
 import logging

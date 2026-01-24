@@ -4,12 +4,46 @@ import { useResponsiveCanvas } from '../../../hooks/useResponsiveCanvas';
 import { getChartColor } from '../../../../core/utils/constants';
 
 /**
- * Bar Chart
- * Displays categorical data with grouped or stacked bars
+ * Bar Chart component for categorical data comparison
+ *
+ * Renders grouped bar charts for comparing metrics across categories.
+ * Used for model comparisons, feature importance, and categorical distributions.
+ *
+ * Features:
+ * - Grouped bars (multiple series per category)
+ * - Auto-scaled Y-axis
+ * - Rotated X-axis labels for long category names
+ * - Legend for series identification
+ * - HiDPI display support
+ *
+ * Data format:
+ * ```
+ * {
+ *   categories: ["Model A", "Model B", "Model C"],
+ *   groups: [
+ *     { label: "Accuracy", values: [0.85, 0.92, 0.88] },
+ *     { label: "F1 Score", values: [0.83, 0.90, 0.86] }
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {object} props.data - Bar chart data
+ * @param {Array<string>} props.data.categories - Category labels (X-axis)
+ * @param {Array<object>} props.data.groups - Data groups with labels and values
+ * @param {string} [props.title] - Chart title (handled by wrapper)
+ * @param {object} [props.metadata] - Additional metadata
+ * @returns {React.ReactElement} Canvas-based bar chart
  */
 const BarChart = ({ data, title: _title, metadata: _metadata }) => {
   const canvasRef = useRef(null);
 
+  /**
+   * Draws the bar chart on the canvas
+   * @param {number} width - Canvas width
+   * @param {number} height - Canvas height
+   * @returns {void}
+   */
   const drawBarChart = useCallback((width, height) => {
     if (!data) return;
 
@@ -105,6 +139,24 @@ const BarChart = ({ data, title: _title, metadata: _metadata }) => {
   );
 };
 
+/**
+ * Draws vertical bars on the canvas for bar chart visualization
+ * @param {object} ctx - Canvas 2D rendering context
+ * @param {Array<string>} categories - Category labels for x-axis
+ * @param {object} groups - Group data with values for each category
+ * @param {Array<string>} groupNames - Names of the groups
+ * @param {boolean} stacked - Whether bars should be stacked or grouped
+ * @param {object} padding - Padding object with top, right, bottom, left properties
+ * @param {number} plotWidth - Width of the plot area
+ * @param {number} plotHeight - Height of the plot area
+ * @param {number} canvasWidth - Total canvas width
+ * @param {number} canvasHeight - Total canvas height
+ * @param {number} minValue - Minimum value for y-axis scale
+ * @param {number} maxValue - Maximum value for y-axis scale
+ * @param {string} xLabel - Label for x-axis
+ * @param {string} yLabel - Label for y-axis
+ * @returns {void}
+ */
 function drawVerticalBars(ctx, categories, groups, groupNames, stacked, padding, plotWidth, plotHeight, canvasWidth, canvasHeight, minValue, maxValue, xLabel, yLabel) {
   const numCategories = categories.length;
   const numGroups = groupNames.length;

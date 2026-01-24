@@ -275,7 +275,7 @@ def create_experiment_summary_notebook(
     sections = []
 
     # Title
-    sections.append(create_heading_section(f"📊 {experiment_name} - Experiment Summary", level=1))
+    sections.append(create_heading_section(f"{experiment_name} - Experiment Summary", level=1))
 
     # Overview
     sections.append(create_heading_section("Overview", level=2))
@@ -287,7 +287,7 @@ def create_experiment_summary_notebook(
     )
 
     # Key Findings
-    sections.append(create_heading_section("🎯 Key Findings", level=2))
+    sections.append(create_heading_section("Key Findings", level=2))
     findings = [
         f"Total runs completed: {len(run_ids)}",
         f"Best configuration identified: {list(best_config.keys())}",
@@ -296,7 +296,7 @@ def create_experiment_summary_notebook(
     sections.append(create_bullet_list_section(findings))
 
     # Results Table
-    sections.append(create_heading_section("📈 Results Summary", level=2))
+    sections.append(create_heading_section("Results Summary", level=2))
 
     if metrics_summary:
         # Extract headers from first result
@@ -311,12 +311,12 @@ def create_experiment_summary_notebook(
         sections.append(create_table_section(headers, rows))
 
     # Best Configuration
-    sections.append(create_heading_section("⚙️ Best Configuration", level=2))
+    sections.append(create_heading_section("Best Configuration", level=2))
     config_items = [f"{k}: {v}" for k, v in best_config.items()]
     sections.append(create_bullet_list_section(config_items))
 
     # Code snippet
-    sections.append(create_heading_section("💻 Example Usage", level=2))
+    sections.append(create_heading_section("Example Usage", level=2))
     code = f"""import artifacta as ds
 
 # Initialize run with best config
@@ -356,7 +356,7 @@ def create_computer_vision_notebook(
     """
     sections = []
 
-    sections.append(create_heading_section("🖼️ Computer Vision Experiment", level=1))
+    sections.append(create_heading_section("Computer Vision Experiment", level=1))
 
     sections.append(create_heading_section("Model Performance", level=2))
 

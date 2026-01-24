@@ -1,20 +1,69 @@
 /**
  * Universal plot discovery from structured data primitives
  *
- * Maps data primitives to plot types:
- * - Series → line, scatter, area
- * - Distribution → histogram, violin, box
- * - Matrix → heatmap, clustergram
- * - Graph → network, tree
- * - Table → table, pivot
- * - Events → timeline, gantt
- * - Media → gallery, video_player
+ * This module implements automatic plot discovery - analyzing logged data primitives
+ * and determining the appropriate visualizations to display. It's the core algorithm
+ * that powers the "Plots" tab, automatically creating charts without manual configuration.
+ *
+ * Primitive → Plot Type Mapping:
+ * - Series → Line plots, scatter plots, multi-run overlays
+ * - Distribution → Histograms, violin plots
+ * - Matrix → Heatmaps
+ * - Scatter → Scatter plots (2D point clouds)
+ * - Curve → ROC curves, PR curves (with AUC metrics)
+ * - BarChart → Bar charts (categorical comparisons)
+ * - Table → Data tables
+ *
+ * Multi-run support:
+ * - Automatically detects when multiple runs log the same primitive
+ * - Creates overlay plots (multiple series on same chart)
+ * - Handles both single-run and multi-run cases transparently
  */
 
 /**
  * Discover all plots from structured data, grouped by section
- * @param {Object} structuredData - Object mapping name -> array of data entries
- * @returns {Object} Object mapping section -> array of plot configs
+ *
+ * This is the main entry point for plot discovery. It analyzes all logged primitives
+ * in a run (or across multiple runs) and generates plot configurations that can be
+ * rendered by visualization components.
+ *
+ * Algorithm:
+ * 1. Iterate through all structured data entries (keyed by primitive name)
+ * 2. Detect if data is single-run or multi-run (check for _runId marker)
+ * 3. For each primitive:
+ *    a. Extract primitive type (series, curve, distribution, etc.)
+ *    b. Map to appropriate plot type(s) via mapPrimitiveToPlots()
+ *    c. Transform data to plot-specific format
+ *    d. Group by section (user-specified or "General")
+ * 4. Return section-organized plot configs ready for rendering
+ *
+ * Single-run vs Multi-run:
+ * - Single-run: Takes most recent entry for each primitive
+ * - Multi-run: Combines all runs' data into overlay plots
+ *
+ * @param {object} structuredData - Object mapping primitive names to data entries
+ *   Format: { "primitiveName": [{ primitive_type, section, data, metadata, timestamp }] }
+ *   Multi-run format: entries have _runId, _runName fields
+ * @returns {object} Plots organized by section
+ *   Format: { "sectionName": [{ plotId, plotType, title, data, ... }] }
+ *
+ * @example
+ * const structuredData = {
+ *   "metrics::loss": [{
+ *     primitive_type: "series",
+ *     section: "Training",
+ *     data: { index: "epoch", fields: { loss: [0.5, 0.3, 0.2] } }
+ *   }]
+ * };
+ * const plots = discoverPlots(structuredData);
+ * // Returns: {
+ * //   "Training": [{
+ * //     plotId: "metrics::loss-line",
+ * //     plotType: "line",
+ * //     title: "Loss",
+ * //     data: { series: [...] }
+ * //   }]
+ * // }
  */
 export function discoverPlots(structuredData) {
   if (!structuredData) return {};
@@ -72,12 +121,13 @@ export function discoverPlots(structuredData) {
 }
 
 /**
- * Map a primitive to one or more plot configs
+ * Map a primitive to one or more plot configs.
  * @param {string} name - Primitive name
  * @param {string} primitiveType - Type of primitive
- * @param {any} data - Either single-run data or array of multi-run entries
+ * @param {unknown} data - Either single-run data or array of multi-run entries
  * @param {object} metadata - Metadata (for single-run)
  * @param {boolean} isMultiRun - Whether this is multi-run data
+ * @returns {Array<object>} Array of plot configuration objects
  */
 function mapPrimitiveToPlots(name, primitiveType, data, metadata, isMultiRun = false) {
   const plots = [];
@@ -209,7 +259,9 @@ function mapPrimitiveToPlots(name, primitiveType, data, metadata, isMultiRun = f
 }
 
 /**
- * Format name for display (snake_case -> Title Case)
+ * Format name for display (snake_case -> Title Case).
+ * @param {string} name - Name to format
+ * @returns {string} Formatted title string
  */
 function formatTitle(name) {
   return name
@@ -219,7 +271,9 @@ function formatTitle(name) {
 }
 
 /**
- * Transform Series to line plot format
+ * Transform Series to line plot format.
+ * @param {object} seriesData - Series data with index, fields, and index_values
+ * @returns {object} Transformed data for line plot
  */
 function transformSeriesForLinePlot(seriesData) {
   const { index, fields, index_values } = seriesData;
@@ -240,7 +294,9 @@ function transformSeriesForLinePlot(seriesData) {
 }
 
 /**
- * Transform Distribution to histogram format
+ * Transform Distribution to histogram format.
+ * @param {object} distData - Distribution data with values, groups, and bins
+ * @returns {object} Transformed data for histogram
  */
 function transformDistributionForHistogram(distData) {
   return {
@@ -251,7 +307,9 @@ function transformDistributionForHistogram(distData) {
 }
 
 /**
- * Transform Distribution to violin plot format
+ * Transform Distribution to violin plot format.
+ * @param {object} distData - Distribution data with values and groups
+ * @returns {object} Transformed data for violin plot
  */
 function transformDistributionForViolin(distData) {
   // Group values by group label
@@ -269,7 +327,9 @@ function transformDistributionForViolin(distData) {
 }
 
 /**
- * Transform Curve to CurveChart format
+ * Transform Curve to CurveChart format.
+ * @param {object} curveData - Curve data with x, y, labels, baseline, and metric
+ * @returns {object} Transformed data for curve chart
  */
 function transformCurveForCurveChart(curveData) {
   const { x, y, x_label, y_label, baseline, metric } = curveData;
@@ -291,7 +351,9 @@ function transformCurveForCurveChart(curveData) {
 }
 
 /**
- * Transform Scatter to ScatterPlot format
+ * Transform Scatter to ScatterPlot format.
+ * @param {object} scatterData - Scatter data with points, x_label, and y_label
+ * @returns {object} Transformed data for scatter plot
  */
 function transformScatterForScatterPlot(scatterData) {
   const { points, x_label, y_label } = scatterData;
@@ -330,7 +392,9 @@ function transformScatterForScatterPlot(scatterData) {
 
 /**
  * Transform multi-run Series to line plot format
- * Overlays all runs on same chart with different colors
+ * Overlays all runs on same chart with different colors.
+ * @param {Array<object>} runEntries - Array of run entries with data, _runName, and _runId
+ * @returns {object} Transformed data for multi-run line plot
  */
 function transformMultiRunSeriesForLinePlot(runEntries) {
   const allDatasets = [];
@@ -357,7 +421,9 @@ function transformMultiRunSeriesForLinePlot(runEntries) {
 
 /**
  * Transform multi-run Curve to curve chart format
- * Overlays multiple ROC/PR curves with different colors
+ * Overlays multiple ROC/PR curves with different colors.
+ * @param {Array<object>} runEntries - Array of run entries with curve data
+ * @returns {object} Transformed data for multi-run curve chart
  */
 function transformMultiRunCurveForCurveChart(runEntries) {
   // For curves, we need to return multiple curve datasets

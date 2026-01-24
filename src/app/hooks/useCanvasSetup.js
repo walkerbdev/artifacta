@@ -50,13 +50,42 @@ export function getChartFont(type) {
 }
 
 /**
- * Reusable hook for setting up canvas with proper DPR scaling
- * Eliminates ~10 lines of boilerplate per chart component
+ * Custom hook for canvas setup with HiDPI (Retina) display support
  *
- * @param {React.RefObject} canvasRef - Reference to canvas element
- * @param {number} defaultWidth - Default width if clientWidth unavailable
- * @param {number} defaultHeight - Default height if clientHeight unavailable
- * @returns {Function} setupCanvas - Function that returns { ctx, width, height, dpr } or null
+ * Handles the common canvas setup pattern: DPR scaling, transform reset, and white background.
+ * Eliminates ~10 lines of boilerplate from every plot component.
+ *
+ * Key features:
+ * - Automatic device pixel ratio (DPR) detection and scaling for crisp rendering on Retina displays
+ * - Transform matrix reset to prevent cumulative scaling bugs
+ * - White background fill
+ * - Returns ready-to-use context with dimensions
+ *
+ * Why transform reset matters:
+ * React may reuse canvas DOM nodes between components. If transform isn't reset,
+ * the scale matrix accumulates (2x → 4x → 8x) causing massive zoom bugs.
+ *
+ * @param {React.RefObject<HTMLCanvasElement>} canvasRef - Ref to canvas element
+ * @param {number} [defaultWidth=600] - Fallback width if clientWidth is 0
+ * @param {number} [defaultHeight=300] - Fallback height if clientHeight is 0
+ * @returns {function} setupCanvas - Function that returns setup object or null:
+ *   - ctx: CanvasRenderingContext2D - Drawing context (already DPR-scaled)
+ *   - width: number - Display width in CSS pixels
+ *   - height: number - Display height in CSS pixels
+ *   - dpr: number - Device pixel ratio (1 for standard, 2+ for Retina)
+ *
+ * @example
+ * const canvasRef = useRef(null);
+ * const setupCanvas = useCanvasSetup(canvasRef);
+ *
+ * const draw = useCallback(() => {
+ *   const setup = setupCanvas();
+ *   if (!setup) return;
+ *
+ *   const { ctx, width, height } = setup;
+ *   // Draw using CSS pixels - DPR already handled
+ *   ctx.fillRect(0, 0, width, height);
+ * }, [setupCanvas]);
  */
 export function useCanvasSetup(canvasRef, defaultWidth = 600, defaultHeight = 300) {
   const setupCanvas = useCallback(() => {
@@ -108,6 +137,10 @@ const CHART_PADDING = {
 
 /**
  * Helper to get chart dimensions after padding
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {object} padding - Padding configuration object
+ * @returns {object} Chart dimensions object with chartWidth and chartHeight
  */
 export function getChartDimensions(width, height, padding = CHART_PADDING) {
   return {
@@ -118,6 +151,13 @@ export function getChartDimensions(width, height, padding = CHART_PADDING) {
 
 /**
  * Draw axes on canvas
+ * @param {object} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {object} padding - Padding configuration object
+ * @param {string} xLabel - Label for X-axis
+ * @param {string} yLabel - Label for Y-axis
+ * @returns {void}
  */
 export function drawAxes(ctx, width, height, padding, xLabel, yLabel) {
   ctx.strokeStyle = '#333';
@@ -144,6 +184,13 @@ export function drawAxes(ctx, width, height, padding, xLabel, yLabel) {
 
 /**
  * Draw grid lines with labels
+ * @param {object} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {object} padding - Padding configuration object
+ * @param {number} numLines - Number of grid lines to draw
+ * @param {(value: number) => string} formatLabel - Function to format grid labels
+ * @returns {void}
  */
 export function drawGridLines(ctx, width, height, padding, numLines = 5, formatLabel = (v) => v.toFixed(1)) {
   const { chartWidth, chartHeight } = getChartDimensions(width, height, padding);
@@ -183,6 +230,15 @@ export function drawGridLines(ctx, width, height, padding, numLines = 5, formatL
 /**
  * Draw Y-axis with grid lines and labels
  * Eliminates ~30 lines of duplicate code per chart
+ * @param {object} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {object} padding - Padding configuration object
+ * @param {number} yMin - Minimum Y value
+ * @param {number} yMax - Maximum Y value
+ * @param {(value: number) => string} formatYValue - Function to format Y-axis values
+ * @param {number} numGridLines - Number of grid lines to draw
+ * @returns {void}
  */
 export function drawYAxisWithGrid(ctx, width, height, padding, yMin, yMax, formatYValue, numGridLines = 5) {
   ctx.strokeStyle = '#e0e0e0';
@@ -210,12 +266,12 @@ export function drawYAxisWithGrid(ctx, width, height, padding, yMin, yMax, forma
 /**
  * Render rotated X-axis labels with collision detection and staggering
  * Eliminates 40+ lines of duplicate code in LinePlot, Histogram, ViolinPlot
- *
- * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {object} ctx - Canvas context
  * @param {Array<string>} labels - Array of label strings
  * @param {Array<number>} xPositions - X positions for each label
  * @param {number} baseY - Base Y position for labels
- * @param {Object} options - Optional configuration
+ * @param {object} options - Optional configuration
+ * @returns {void}
  */
 export function renderRotatedLabels(ctx, labels, xPositions, baseY, options = {}) {
   const {
@@ -275,12 +331,11 @@ export function renderRotatedLabels(ctx, labels, xPositions, baseY, options = {}
 /**
  * Draw legend at the top of the chart with automatic wrapping
  * Returns the height consumed by the legend for layout adjustment
- *
- * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {object} ctx - Canvas context
  * @param {Array} items - Legend items [{label, color}, ...]
  * @param {number} width - Canvas width
  * @param {number} startY - Y position to start drawing legend (top of chart area)
- * @param {Object} options - Spacing and styling options
+ * @param {object} options - Spacing and styling options
  * @returns {number} - Total height consumed by legend
  */
 export function drawTopLegend(ctx, items, width, startY, options = {}) {
@@ -355,6 +410,10 @@ export function drawTopLegend(ctx, items, width, startY, options = {}) {
 /**
  * Calculate dynamic bottom padding for legend
  * Helps charts adjust height based on number of legend items
+ * @param {number} numItems - Number of legend items
+ * @param {number} canvasWidth - Canvas width
+ * @param {object} options - Optional configuration
+ * @returns {number} Calculated padding value
  */
 export function calculateLegendPadding(numItems, canvasWidth, options = {}) {
   const {

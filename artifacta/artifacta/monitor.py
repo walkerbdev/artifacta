@@ -1,4 +1,61 @@
-"""System monitoring background thread."""
+"""System monitoring via background thread for automatic metrics capture.
+
+This module implements a background monitoring daemon that periodically captures
+system-level metrics (CPU, memory, disk, network, GPU) and emits them to the
+tracking server. The design follows a non-invasive pattern: monitoring runs in
+a daemon thread and fails silently to avoid impacting the main training loop.
+
+Architecture:
+    - Background Thread: Runs in daemon mode (won't block Python exit)
+    - Periodic Sampling: Configurable interval (default 30 seconds)
+    - Graceful Degradation: All metric capture wrapped in try/except
+    - GPU Support: Optional via pynvml (NVIDIA GPUs only)
+    - Process-Level: Tracks both system-wide and current process metrics
+
+Monitoring Strategy:
+    The monitor captures two categories of metrics:
+
+    1. System-wide metrics (all processes):
+       - CPU percent, memory usage, disk I/O, network I/O
+       - Provides context about overall system load
+
+    2. Process-specific metrics (current Python process):
+       - CPU percent, thread count, RSS memory, memory percent
+       - Helps identify if training is bottlenecked by system resources
+
+GPU Monitoring Algorithm:
+    1. Try to import pynvml and initialize NVML at __init__
+    2. If successful, set has_gpu=True and store pynvml reference
+    3. In _capture_metrics(), iterate over all GPU devices
+    4. For each GPU, capture:
+       - Utilization (GPU compute %, memory %)
+       - Memory (used bytes, allocated %)
+       - Temperature (Celsius)
+       - Power (watts, percent of limit)
+       - Clock speeds (SM, memory, graphics in MHz)
+       - Memory errors (corrected/uncorrected ECC errors)
+       - Encoder utilization (for video encoding workloads)
+    5. Wrap each metric in try/except (some GPUs don't support all metrics)
+
+Background Thread Lifecycle:
+    1. start() -> Create daemon thread, set running=True, start loop
+    2. Loop: capture metrics, emit via HTTP, sleep for interval
+    3. stop() -> Set running=False, join thread with 5s timeout
+    4. Cleanup: Call nvmlShutdown() if GPU monitoring was enabled
+
+Performance Considerations:
+    - psutil.oneshot() context manager batches system calls for efficiency
+    - CPU percent uses interval=1 for accuracy (blocks for 1 second)
+    - Process CPU uses interval=None (non-blocking, uses cached value)
+    - All exceptions suppressed to avoid crashing the monitoring thread
+    - Daemon thread ensures no zombie threads after program exit
+
+Why daemon thread:
+    Daemon threads don't prevent the Python interpreter from exiting.
+    If training finishes, the main thread exits, and the monitor thread
+    is automatically terminated. This avoids requiring users to explicitly
+    call stop() in all cases.
+"""
 
 import contextlib
 import threading

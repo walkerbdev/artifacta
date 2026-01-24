@@ -4,8 +4,34 @@ import { useResponsiveCanvas } from '@/app/hooks/useResponsiveCanvas';
 import { getChartColor, CHART_PADDING } from '../../../../core/utils/constants';
 
 /**
- * Violin Plot - Shows distribution density with embedded box plot
- * Displays distribution of values across groups using kernel density estimation
+ * Violin Plot component for distribution comparison across groups
+ *
+ * Combines box plots with kernel density estimation to show distribution shape.
+ * Used for comparing metric distributions across different models or hyperparameter settings.
+ *
+ * Features:
+ * - Kernel density estimation (KDE) for distribution shape
+ * - Embedded box plot showing quartiles and median
+ * - Multiple group comparison side-by-side
+ * - Auto-scaled axes
+ * - HiDPI display support
+ *
+ * Data format:
+ * ```
+ * {
+ *   groups: [
+ *     { label: "Model A", values: [0.82, 0.85, 0.88, 0.91] },
+ *     { label: "Model B", values: [0.75, 0.79, 0.83, 0.86] }
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {object} props.data - Violin plot data with groups
+ * @param {Array<object>} props.data.groups - Array of groups with labels and values
+ * @param {string} [props.title] - Chart title (handled by wrapper)
+ * @param {object} [props.metadata] - Additional metadata
+ * @returns {React.ReactElement} Canvas-based violin plot
  */
 const ViolinPlot = ({ data, title: _title, metadata: _metadata }) => {
   const canvasRef = useRef(null);
@@ -169,6 +195,8 @@ const ViolinPlot = ({ data, title: _title, metadata: _metadata }) => {
 
 /**
  * Compute kernel density estimation for violin plot
+ * @param {number[]} values - Array of numeric values
+ * @returns {{points: Array<{value: number, density: number}>, maxDensity: number}} KDE result with points and max density
  */
 function computeKDE(values) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -204,6 +232,11 @@ function computeKDE(values) {
   return { points, maxDensity };
 }
 
+/**
+ * Compute statistical quartiles for box plot
+ * @param {number[]} values - Array of numeric values
+ * @returns {{min: number, max: number, median: number, q1: number, q3: number}} Statistical values
+ */
 function computeStats(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const n = sorted.length;

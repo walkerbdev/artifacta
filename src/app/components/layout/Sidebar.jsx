@@ -2,6 +2,34 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './Sidebar.scss';
 
+/**
+ * Sidebar component for navigation and run selection
+ *
+ * Collapsible and resizable sidebar containing run browser, filters, and navigation.
+ * Primary interface for selecting which experiment runs to analyze.
+ *
+ * Features:
+ * - Collapsible (hide/show with toggle button)
+ * - Resizable width (drag right edge)
+ * - Backend status indicator
+ * - Smooth collapse animation (Framer Motion)
+ * - Persistent width across sessions
+ *
+ * Contains:
+ * - Run selector (tree or list view)
+ * - Run filters
+ * - Project selector
+ * - Backend connection status
+ *
+ * @param {object} props - Component props
+ * @param {React.ReactNode} props.children - Sidebar content (RunSelector, filters, etc.)
+ * @param {object} props.backendStatus - Backend connection status:
+ *   - connected: boolean
+ *   - message: string (optional)
+ * @param {boolean} props.isCollapsed - Whether sidebar is currently collapsed
+ * @param {function} props.onToggle - Callback to toggle collapse state
+ * @returns {React.ReactElement} Collapsible, resizable sidebar
+ */
 export const Sidebar = ({ children, backendStatus, isCollapsed, onToggle }) => {
   const [sidebarWidth, setSidebarWidth] = useState(267);
   const [isResizing, setIsResizing] = useState(false);
@@ -10,6 +38,11 @@ export const Sidebar = ({ children, backendStatus, isCollapsed, onToggle }) => {
   useEffect(() => {
     if (!isResizing) return;
 
+    /**
+     * Handles mouse movement during sidebar resize
+     * @param {Event} e - Mouse event object
+     * @returns {void}
+     */
     const handleMouseMove = (e) => {
       e.preventDefault();
       const newWidth = e.clientX;
@@ -17,6 +50,10 @@ export const Sidebar = ({ children, backendStatus, isCollapsed, onToggle }) => {
       setSidebarWidth(Math.max(0, newWidth));
     };
 
+    /**
+     * Handles mouse up event to end sidebar resize
+     * @returns {void}
+     */
     const handleMouseUp = () => {
       setIsResizing(false);
       document.body.classList.remove('resizing-sidebar');

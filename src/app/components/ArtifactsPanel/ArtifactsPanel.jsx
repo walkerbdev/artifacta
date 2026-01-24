@@ -13,7 +13,7 @@ import './ArtifactsPanel.scss';
 /**
  * Build a tree structure from flat file paths
  * @param {Array} files - Array of file objects with path property
- * @returns {Object} Tree structure { folders: {}, files: [] }
+ * @returns {object} Tree structure { folders: {}, files: [] }
  */
 const buildFileTree = (files) => {
   const tree = { folders: {}, files: [] };
@@ -46,8 +46,38 @@ const buildFileTree = (files) => {
 };
 
 /**
- * FilesPanel - Shows files for selected runs in a collapsible folder tree
- * Displays file collections with ability to expand/collapse folders and view individual files
+ * Artifacts Panel component for browsing logged files across runs
+ *
+ * Hierarchical file browser showing all artifacts logged by selected runs.
+ * Groups files by run, with collapsible folder structure for organization.
+ *
+ * Features:
+ * - Multi-run artifact browsing
+ * - Collapsible folder tree structure
+ * - File preview on click (delegates to onFileSelect callback)
+ * - Automatic color coding per run
+ * - Empty state when no runs selected
+ * - File count display per run
+ * - Icon-based file type detection
+ *
+ * Artifact types supported:
+ * - Images (PNG, JPG, etc.)
+ * - Model checkpoints (.pt, .h5, etc.)
+ * - Config files (JSON, YAML)
+ * - Logs (TXT)
+ * - Any file uploaded via track.log_artifact()
+ *
+ * Architecture:
+ * - Fetches artifacts from API for selected runs
+ * - Organizes by run → folder → file hierarchy
+ * - Clicking file triggers parent callback for preview/download
+ *
+ * @param {object} props - Component props
+ * @param {Array<string>} props.selectedRunIds - Run IDs to show artifacts for
+ * @param {function} props.onFileSelect - Callback when file clicked
+ *   Signature: (fileData: object) => void
+ *   fileData contains: { filename, path, run_id, url, ... }
+ * @returns {React.ReactElement} Collapsible artifact browser
  */
 export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
   const [artifacts, setArtifacts] = useState([]);
@@ -62,6 +92,10 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
       return;
     }
 
+    /**
+     * Fetch artifacts for all selected runs.
+     * @returns {Promise<void>}
+     */
     const fetchArtifacts = async () => {
       setLoading(true);
       try {
@@ -138,6 +172,10 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     fetchArtifacts();
   }, [selectedRunIds]);
 
+  /**
+   * Toggle expansion state of an artifact.
+   * @param {string} artifactId - Artifact ID to toggle
+   */
   const toggleArtifact = (artifactId) => {
     setExpandedArtifacts(prev => {
       const next = new Set(prev);
@@ -150,7 +188,12 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     });
   };
 
-  // Helper to get a specific folder's tree from the full tree
+  /**
+   * Get a specific folder's tree from the full tree.
+   * @param {object} tree - Full file tree
+   * @param {string} path - Path to folder
+   * @returns {object|null} Folder tree or null if not found
+   */
   const getFolderTree = (tree, path) => {
     const parts = path.split('/');
     let current = tree;
@@ -161,13 +204,23 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     return current;
   };
 
-  // Generic helper to check if folder contains only files of a specific media type
+  /**
+   * Check if folder contains only files of a specific media type.
+   * @param {object} folderTree - Folder tree structure
+   * @param {string} mimePrefix - MIME type prefix to check
+   * @returns {boolean} True if folder contains only files of specified type
+   */
   const isFolderOnlyMediaType = (folderTree, mimePrefix) => {
     if (Object.keys(folderTree.folders).length > 0) return false;
     return folderTree.files.every(file => file.mime_type?.startsWith(mimePrefix));
   };
 
-  // Generic helper to collect files by media type (recursively)
+  /**
+   * Collect files by media type recursively.
+   * @param {object} folderTree - Folder tree structure
+   * @param {string} mimePrefix - MIME type prefix to collect
+   * @returns {Array<object>} Array of files matching the media type
+   */
   const collectFilesByMediaType = (folderTree, mimePrefix) => {
     const files = [];
     folderTree.files.forEach(file => {
@@ -181,15 +234,50 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     return files;
   };
 
-  // Convenience wrappers for specific media types
+  /**
+   * Check if folder contains only image files.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {boolean} True if folder contains only images
+   */
   const isFolderOnlyImages = (folderTree) => isFolderOnlyMediaType(folderTree, 'image/');
+  /**
+   * Check if folder contains only audio files.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {boolean} True if folder contains only audio
+   */
   const isFolderOnlyAudio = (folderTree) => isFolderOnlyMediaType(folderTree, 'audio/');
+  /**
+   * Check if folder contains only video files.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {boolean} True if folder contains only video
+   */
   const isFolderOnlyVideo = (folderTree) => isFolderOnlyMediaType(folderTree, 'video/');
 
+  /**
+   * Collect all image files from folder tree.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {Array<object>} Array of image files
+   */
   const collectImageFiles = (folderTree) => collectFilesByMediaType(folderTree, 'image/');
+  /**
+   * Collect all audio files from folder tree.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {Array<object>} Array of audio files
+   */
   const collectAudioFiles = (folderTree) => collectFilesByMediaType(folderTree, 'audio/');
+  /**
+   * Collect all video files from folder tree.
+   * @param {object} folderTree - Folder tree structure
+   * @returns {Array<object>} Array of video files
+   */
   const collectVideoFiles = (folderTree) => collectFilesByMediaType(folderTree, 'video/');
 
+  /**
+   * Toggle folder expansion and handle media type special cases.
+   * @param {string} folderPath - Path to folder
+   * @param {object} fullTree - Full file tree
+   * @param {object} artifact - Artifact object
+   */
   const toggleFolder = (folderPath, fullTree, artifact) => {
     const folderTree = getFolderTree(fullTree, folderPath);
 
@@ -246,6 +334,11 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     });
   };
 
+  /**
+   * Parse file collection from JSON string.
+   * @param {string} content - JSON content string
+   * @returns {object|null} Parsed file collection or null
+   */
   const parseFileCollection = (content) => {
     if (!content) return null;
     try {
@@ -255,6 +348,11 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     }
   };
 
+  /**
+   * Get appropriate icon component for a file based on type.
+   * @param {object} file - File object with path, mime_type, and metadata
+   * @returns {object} Icon component for the file
+   */
   const getFileIcon = (file) => {
     const ext = file.path.split('.').pop()?.toLowerCase();
     const mimeType = file.mime_type;
@@ -298,6 +396,11 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     return <VscFile />;
   };
 
+  /**
+   * Handle file click event.
+   * @param {object} artifact - Artifact object
+   * @param {object} file - File object
+   */
   const handleFileClick = (artifact, file) => {
     if (onFileSelect) {
       onFileSelect({
@@ -312,7 +415,15 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
     }
   };
 
-  // Recursive component to render file tree
+  /**
+   * Recursive component to render file tree.
+   * @param {object} root0 - Component props
+   * @param {object} root0.tree - Tree structure to render
+   * @param {object} root0.artifact - Artifact object
+   * @param {string} root0.pathPrefix - Path prefix for nested folders
+   * @param {object} root0.fullTree - Full tree (for root reference)
+   * @returns {object|null} Rendered file tree or null
+   */
   const FileTreeNode = ({ tree, artifact, pathPrefix = '', fullTree = null }) => {
     if (!tree) return null;
     const rootTree = fullTree || tree;
@@ -392,14 +503,18 @@ export const ArtifactsPanel = ({ selectedRunIds, onFileSelect }) => {
           file.mime_type?.startsWith('video/')
         );
 
-        // Handle clicks on the expand icon
+        /**
+         * Handle clicks on the expand icon.
+         * @param {Event} e - Click event
+         */
         const handleExpandClick = (e) => {
           e.stopPropagation(); // Prevent triggering header click
           toggleArtifact(artifact.artifact_id);
         };
 
-        // For single file, click opens it directly
-        // For image/audio/video-only artifacts, click opens grid view AND toggles expansion
+        /**
+         * Handle header click for single file or media-only artifacts.
+         */
         const handleHeaderClick = () => {
           if (isSingleFile && fileCollection) {
             handleFileClick(artifact, fileCollection.files[0]);

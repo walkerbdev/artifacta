@@ -52,5 +52,5 @@ def test_system_metrics_runs():
         code_path = os.path.join(os.path.dirname(__file__), "../fixtures/code/system_monitor.py")
         run.log_input(code_path)
 
-        print(f"  ✅ Completed: {name} profile")
+        print(f"  Completed: {name} profile")
         time.sleep(0.3)

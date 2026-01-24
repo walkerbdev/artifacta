@@ -4,17 +4,17 @@ PyTorch MNIST Training Example with Artifacta
 
 This example demonstrates Artifacta's logging capabilities for PyTorch training:
 
-1. **Automatic checkpoint logging** via ds.autolog() - tracks model checkpoints automatically
-2. **Training metrics** via ds.Series - tracks loss and accuracy over epochs
-3. **Confusion matrix** via ds.Matrix - visualizes classification performance
+1. **Automatic checkpoint logging** via autolog() - tracks model checkpoints automatically
+2. **Training metrics** via Series - tracks loss and accuracy over epochs
+3. **Confusion matrix** via Matrix - visualizes classification performance
 4. **Model artifact logging** - saves trained model with automatic metadata extraction
 5. **Configuration tracking** - logs hyperparameters automatically
 
 Key Artifacta Features Demonstrated:
-- ds.init() - Initialize experiment run with config
-- ds.autolog() - Enable automatic checkpoint logging
-- ds.Series - Log time-series metrics (loss, accuracy per epoch)
-- ds.Matrix - Log 2D data (confusion matrix)
+- init() - Initialize experiment run with config
+- autolog() - Enable automatic checkpoint logging
+- Series - Log time-series metrics (loss, accuracy per epoch)
+- Matrix - Log 2D data (confusion matrix)
 - run.log_output() - Save model artifacts with metadata
 
 Requirements:
@@ -32,7 +32,7 @@ from sklearn.metrics import confusion_matrix
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-import artifacta as ds
+from artifacta import Matrix, Series, autolog, init, log
 
 
 class SimpleCNN(nn.Module):
@@ -179,76 +179,75 @@ def main():
     print("=" * 70)
 
     # =================================================================
-    # 1. Configuration variations - run 3 experiments with different learning rates
+    # 1. Define hyperparameter search space (grid search)
     # =================================================================
-    configs = [
-        {
-            "learning_rate": 0.001,
-            "batch_size": 128,
-            "epochs": 5,
-            "optimizer": "Adam",
+    from itertools import product
+
+    # Define parameter grid - typical grid search approach
+    param_grid = {
+        "learning_rate": [0.001, 0.01, 0.05],
+        "optimizer": ["Adam", "SGD"],
+        "batch_size": [128],
+        "epochs": [5],
+    }
+
+    # Generate all combinations
+    keys = param_grid.keys()
+    values = param_grid.values()
+    configs = [dict(zip(keys, v)) for v in product(*values)]
+
+    # Add metadata to each config
+    for config in configs:
+        config.update({
             "model": "SimpleCNN",
             "dataset": "MNIST",
-            "name": "low-lr-adam",
-        },
-        {
-            "learning_rate": 0.01,
-            "batch_size": 128,
-            "epochs": 5,
-            "optimizer": "SGD",
-            "model": "SimpleCNN",
-            "dataset": "MNIST",
-            "name": "medium-lr-sgd",
-        },
-        {
-            "learning_rate": 0.05,
-            "batch_size": 128,
-            "epochs": 5,
-            "optimizer": "SGD",
-            "model": "SimpleCNN",
-            "dataset": "MNIST",
-            "name": "high-lr-sgd",
-        },
-    ]
+        })
+
+    print(f"\nGrid search: {len(configs)} configurations")
+    print("  Parameter grid:")
+    for key, values in param_grid.items():
+        print(f"    {key}: {values}")
 
     # =================================================================
     # 2. Run experiments with different configurations
     # =================================================================
     for idx, config in enumerate(configs, 1):
+        # Generate run name from config
+        run_name = f"lr{config['learning_rate']}-{config['optimizer'].lower()}-bs{config['batch_size']}"
+
         print(f"\n{'=' * 70}")
-        print(f"Experiment {idx}/3: {config['name']}")
+        print(f"Run {idx}/{len(configs)}: {run_name}")
         print(f"{'=' * 70}")
 
         print("\nConfiguration:")
         for key, value in config.items():
-            if key != "name":
-                print(f"  {key}: {value}")
+            print(f"  {key}: {value}")
 
         # Initialize Artifacta run with configuration
-        run = ds.init(
+        run = init(
             project="mnist-classification",
-            name=f"pytorch-cnn-{config['name']}",
-            config={k: v for k, v in config.items() if k != "name"},
+            name=run_name,
+            config=config,
         )
-        print("\n✓ Artifacta run initialized")
+        print("\nArtifacta run initialized")
 
         # =================================================================
         # 3. Enable autolog for automatic checkpoint tracking
         #    This will log model checkpoints automatically during training
         # =================================================================
-        ds.autolog(framework="pytorch")
+        autolog(framework="pytorch")
 
         # =================================================================
         # 4. Setup device (GPU if available, otherwise CPU)
         # =================================================================
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"\n✓ Using device: {device}")
+        print(f"\nUsing device: {device}")
 
         # =================================================================
         # 5. Load MNIST dataset
         #    Downloads to ./data directory on first run
         # =================================================================
-        print("\n✓ Loading MNIST dataset...")
+        print("\nLoading MNIST dataset...")
 
         # Transform: Convert to tensor and normalize to [0, 1]
         transform = transforms.Compose(
@@ -275,7 +274,7 @@ def main():
         # =================================================================
         # 6. Create model, optimizer, and move to device
         # =================================================================
-        print("\n✓ Creating model...")
+        print("\nCreating model...")
         model = SimpleCNN().to(device)
 
         # Create optimizer based on config
@@ -293,7 +292,7 @@ def main():
         # =================================================================
         # 7. Training loop
         # =================================================================
-        print(f"\n✓ Training for {config['epochs']} epochs...")
+        print(f"\nTraining for {config['epochs']} epochs...")
 
         # Track metrics across epochs
         train_losses = []
@@ -325,12 +324,12 @@ def main():
         # 8. Log training metrics as Series (time-series data)
         #    This creates interactive plots in the Artifacta UI
         # =================================================================
-        print("\n✓ Logging training metrics...")
+        print("\nLogging training metrics...")
 
         # Log loss curves
-        ds.log(
+        log(
             "loss_curves",
-            ds.Series(
+            Series(
                 index="epoch",
                 fields={
                     "train_loss": train_losses,
@@ -341,9 +340,9 @@ def main():
         )
 
         # Log accuracy curves
-        ds.log(
+        log(
             "accuracy_curves",
-            ds.Series(
+            Series(
                 index="epoch",
                 fields={
                     "train_accuracy": train_accuracies,
@@ -357,7 +356,7 @@ def main():
         # 9. Generate and log confusion matrix
         #    Shows which digits are confused with each other
         # =================================================================
-        print("\n✓ Generating confusion matrix...")
+        print("\nGenerating confusion matrix...")
 
         # Get predictions on full test set
         _, _, all_preds, all_targets = evaluate(model, device, test_loader)
@@ -367,9 +366,9 @@ def main():
 
         # Log as Matrix primitive
         digit_labels = [str(i) for i in range(10)]
-        ds.log(
+        log(
             "confusion_matrix",
-            ds.Matrix(
+            Matrix(
                 rows=digit_labels,
                 cols=digit_labels,
                 values=cm.tolist(),
@@ -383,7 +382,7 @@ def main():
         # 10. Save and log the trained model
         #     Artifacta automatically extracts model metadata
         # =================================================================
-        print("\n✓ Saving model...")
+        print("\nSaving model...")
 
         # Save model checkpoint
         model_path = "mnist_cnn.pt"
@@ -422,7 +421,7 @@ def main():
         print(f"  Train Accuracy: {train_accuracies[-1]:.2f}%")
         print(f"  Val Accuracy:   {val_accuracies[-1]:.2f}%")
         print(f"  Val Loss:       {val_losses[-1]:.4f}")
-        print("\n✓ All metrics and artifacts logged to Artifacta")
+        print("\nAll metrics and artifacts logged to Artifacta")
         print("  View your results in the Artifacta UI!")
         print("=" * 70)
 
