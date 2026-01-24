@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "artifacta"
-version = "0.1.1"
+version = "0.2.0"
 description = "Universal experiment and artifact tracking — gain insights and optimize models with confidence"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -163,7 +163,7 @@ markers = [
 
 # Bump My Version configuration
 [tool.bumpversion]
-current_version = "0.1.1"
+current_version = "0.2.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"
