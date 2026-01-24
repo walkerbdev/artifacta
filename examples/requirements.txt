@@ -1,0 +1,24 @@
+# Artifacta Examples - All Dependencies
+# =====================================
+# Install with: pip install -r examples/requirements.txt
+#
+# This includes artifacta and all ML framework dependencies needed to run
+# all examples in this directory.
+
+# Core package
+artifacta
+
+# Data manipulation (used by all examples)
+numpy~=1.24
+pandas~=2.0
+
+# ML Frameworks
+scikit-learn~=1.3    # For sklearn_classification.py
+xgboost~=2.0         # For xgboost_regression.py
+torch~=2.0           # For pytorch_mnist.py (CPU version)
+torchvision~=0.15    # For pytorch_mnist.py (MNIST dataset)
+tensorflow~=2.13     # For tensorflow_regression.py
+
+# Optional: GPU support for PyTorch (uncomment if you have CUDA)
+# torch>=2.0.0+cu118
+# torchvision>=0.15.0+cu118

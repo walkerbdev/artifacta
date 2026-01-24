@@ -59,7 +59,7 @@ def log_structured_data(api_url, run_id, name, primitive_type, data, section=Non
         primitive._metadata = metadata
 
     ds.log(name, primitive)
-    print(f"✓ Logged {primitive_type}: {name} [{section or 'General'}]")
+    print(f"Logged {primitive_type}: {name} [{section or 'General'}]")
 
 
 def finish_run(api_url, run_id):
@@ -87,4 +87,4 @@ def log_artifact(api_url, run_id, filepath, role=None, include_content=True):
     # Log artifact using SDK with role
     run.log_artifact(filename, filepath, include_content=include_content, role=role or "output")
 
-    print(f"✓ 📄 Logged artifact: {filename}")
+    print(f"Logged artifact: {filename}")

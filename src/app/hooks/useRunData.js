@@ -2,8 +2,45 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/core/api/ApiClient';
 
 /**
- * Unified hook for fetching run data from REST API
- * Polls continuously to pick up new runs from database
+ * Custom hook for fetching and polling experiment run data from REST API
+ *
+ * Central data-fetching hook used throughout the application. Loads all runs from
+ * the backend and continuously polls for new runs (e.g., from ongoing experiments).
+ *
+ * Features:
+ * - Initial fetch on mount with loading state
+ * - Continuous polling every 2 seconds for new runs
+ * - Smart re-render prevention (only updates when run list changes)
+ * - Stable reference if runs unchanged (prevents downstream re-renders)
+ * - Error handling with error state
+ * - Run count tracking
+ * - Individual run metrics fetching
+ *
+ * Why polling:
+ * - Detects newly completed experiments without page refresh
+ * - Simple alternative to WebSocket/SSE for small-scale deployments
+ * - 2-second interval balances freshness vs server load
+ *
+ * Re-render optimization:
+ * - Compares run_id lists, not full object deep equality
+ * - Returns previous reference if runs unchanged
+ * - Critical for components with `runs` in dependencies (LineageTab, etc.)
+ *
+ * @returns {object} Run data and utilities:
+ *   - runs: Array<object> - All experiment runs
+ *   - loading: boolean - Initial loading state
+ *   - error: string|null - Error message if fetch failed
+ *   - runCount: number - Total number of runs
+ *   - fetchRuns: function - Manually trigger fetch (isInitialFetch: boolean)
+ *   - fetchRunMetrics: function - Fetch metrics for specific run (runId: string)
+ *
+ * @example
+ * const { runs, loading, error, fetchRuns } = useRunData();
+ *
+ * if (loading) return <div>Loading...</div>;
+ * if (error) return <div>Error: {error}</div>;
+ *
+ * return <RunList runs={runs} onRefresh={() => fetchRuns(true)} />;
  */
 export const useRunData = () => {
   const [runs, setRuns] = useState([]);
@@ -11,7 +48,11 @@ export const useRunData = () => {
   const [error, setError] = useState(null);
   const [runCount, setRunCount] = useState(0);
 
-  // Fetch all runs from REST API
+  /**
+   * Fetch all runs from REST API.
+   * @param {boolean} isInitialFetch - Whether this is the initial fetch
+   * @returns {Promise<void>}
+   */
   const fetchRuns = useCallback(async (isInitialFetch = false) => {
     try {
       // Only show loading on initial fetch, not on polls
@@ -53,7 +94,11 @@ export const useRunData = () => {
     }
   }, []);
 
-  // Fetch metrics for a specific run (raw data only, UI does formatting)
+  /**
+   * Fetch metrics for a specific run (raw data only, UI does formatting).
+   * @param {string} runId - Run ID to fetch metrics for
+   * @returns {Promise<object>} Metrics data for the run
+   */
   const fetchRunMetrics = useCallback(async (runId) => {
     try {
       return await apiClient.getRunMetrics(runId);

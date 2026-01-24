@@ -1,23 +1,68 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 /**
- * Hook for managing tooltips on canvas-based plots
+ * Custom hook for managing interactive tooltips on canvas-based plots
  *
- * Usage:
- *   const tooltip = useCanvasTooltip({
- *     canvasRef,
- *     getTooltipData: (canvasX, canvasY, searchRadius) => {
- *       // Your plot-specific logic to find nearest point
- *       // Return { type: 'series', content: {...} } or null
- *     }
- *   });
+ * Provides smooth, performant tooltip updates at 60fps using requestAnimationFrame.
+ * This hook handles all the complexity of:
+ * - Mouse position tracking relative to canvas
+ * - Finding nearest data points via custom search function
+ * - Throttling updates to avoid layout thrashing
+ * - Proper cleanup on unmount
  *
- *   return (
- *     <>
- *       <canvas ref={canvasRef} />
- *       <PlotTooltip {...tooltip} />
- *     </>
- *   );
+ * Performance optimizations:
+ * - Uses requestAnimationFrame to throttle tooltip updates to 60fps max
+ * - Cancels pending RAF callbacks when new mousemove events arrive
+ * - Only triggers React re-renders when tooltip data actually changes
+ * - Cleans up event listeners and RAF callbacks on unmount
+ *
+ * How it works:
+ * 1. Attach mousemove/mouseleave listeners to canvas element
+ * 2. On mousemove: convert screen coords to canvas coords
+ * 3. Schedule RAF callback to find nearby data points
+ * 4. If data found: update tooltip state with position and content
+ * 5. PlotTooltip component renders the actual tooltip DOM
+ *
+ * @param {object} params - Hook configuration
+ * @param {React.RefObject<HTMLCanvasElement>} params.canvasRef - Ref to canvas element
+ * @param {function} params.getTooltipData - Function to find data near cursor position
+ *   Signature: (canvasX: number, canvasY: number, searchRadius: number) => object|null
+ *   Should return tooltip data object or null if no data nearby
+ *   Example return: { type: 'series', content: { x: 10, y: 20, seriesName: 'loss' } }
+ * @param {number} [params.searchRadius=20] - Pixel radius for nearby point detection
+ * @returns {object} Tooltip state for PlotTooltip component:
+ *   - visible: boolean - Whether tooltip should be shown
+ *   - x: number - Screen X coordinate for tooltip
+ *   - y: number - Screen Y coordinate for tooltip
+ *   - data: object|null - Tooltip content data
+ *
+ * @example
+ * // In a plot component:
+ * const tooltip = useCanvasTooltip({
+ *   canvasRef,
+ *   searchRadius: 25,
+ *   getTooltipData: (canvasX, canvasY, radius) => {
+ *     // Find nearest data point within radius
+ *     const point = findNearestPoint(canvasX, canvasY, radius);
+ *     if (!point) return null;
+ *
+ *     return {
+ *       type: 'scatter',
+ *       content: {
+ *         x: point.x,
+ *         y: point.y,
+ *         label: point.label
+ *       }
+ *     };
+ *   }
+ * });
+ *
+ * return (
+ *   <>
+ *     <canvas ref={canvasRef} />
+ *     <PlotTooltip {...tooltip} />
+ *   </>
+ * );
  */
 export function useCanvasTooltip({
   canvasRef,

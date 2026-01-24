@@ -6,17 +6,36 @@ import { CHART_PADDING } from '@/core/utils/constants';
 import PlotTooltip from '../shared/PlotTooltip';
 
 /**
- * Scatter Plot for Scatter primitive
+ * Scatter Plot component for 2D point cloud visualization
  *
- * Expected data format (scatter primitive):
+ * Renders scatter plots with auto-detected axes, interactive tooltips, and optional
+ * point labels. Used for hyperparameter spaces, embeddings, and feature correlations.
+ *
+ * Features:
+ * - Auto-detects numeric fields for X and Y axes (field-name agnostic)
+ * - Interactive tooltips showing point details on hover
+ * - Optional point labels and custom colors
+ * - Auto-scaled axes based on data range
+ * - HiDPI display support
+ *
+ * Data format:
+ * ```
  * {
- *   points: [{<field1>: val, <field2>: val, label?, size?, color?}, ...],
- *   x_label: "X Axis Label",
- *   y_label: "Y Axis Label"
+ *   points: [
+ *     { lr: 0.01, accuracy: 0.85, label: "Run 1", color: "#ff0000" },
+ *     { lr: 0.1, accuracy: 0.92, label: "Run 2" }
+ *   ],
+ *   x_label: "Learning Rate",
+ *   y_label: "Accuracy"
  * }
+ * ```
  *
- * Auto-detects numeric fields - does NOT assume field names.
- * First two numeric fields are used as x and y.
+ * @param {object} props - Component props
+ * @param {object} props.data - Scatter data with points and axis labels
+ * @param {Array<object>} props.data.points - Array of point objects (flexible fields)
+ * @param {string} [props.data.x_label] - X-axis label (auto-detected if not provided)
+ * @param {string} [props.data.y_label] - Y-axis label (auto-detected if not provided)
+ * @returns {React.ReactElement} Canvas-based scatter plot with tooltip
  */
 const ScatterPlot = ({ data }) => {
   const canvasRef = useRef(null);

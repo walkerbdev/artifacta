@@ -7,9 +7,54 @@ import { toTitleCase } from '@/core/utils/formatters';
 import { getChartColor, CHART_PADDING } from '@/core/utils/constants';
 
 /**
- * Generic Curve Chart
- * Displays any array of objects with numeric fields as an X-Y curve
- * Auto-detects axis fields from data structure
+ * Curve Chart component for performance curves (ROC, PR, calibration)
+ *
+ * Generic field-agnostic curve visualization that auto-detects axes from data.
+ * Commonly used for ROC curves (with AUC), precision-recall curves, and calibration plots.
+ *
+ * Features:
+ * - Auto-detects X/Y field names from data structure
+ * - Multi-curve overlay with different colors
+ * - Optional diagonal reference line (ROC curves)
+ * - Metric display (e.g., AUC = 0.95)
+ * - Interactive tooltips
+ * - Custom axis labels
+ * - HiDPI display support
+ *
+ * Data format (single curve):
+ * ```
+ * {
+ *   data: [
+ *     { fpr: 0.0, tpr: 0.0 },
+ *     { fpr: 0.1, tpr: 0.7 },
+ *     { fpr: 1.0, tpr: 1.0 }
+ *   ],
+ *   metric: 0.95,
+ *   metricLabel: "AUC"
+ * }
+ * ```
+ *
+ * Data format (multi-curve):
+ * ```
+ * {
+ *   curves: [
+ *     { label: "Model A", points: [...], metric: { name: "AUC", value: 0.95 } },
+ *     { label: "Model B", points: [...], metric: { name: "AUC", value: 0.92 } }
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {Array<object>|object} props.data - Curve data (array of points or object with curves)
+ * @param {Array<object>} [props.curves] - Multi-curve data with labels
+ * @param {string} [props.xField] - X-axis field (auto-detected from first point)
+ * @param {string} [props.yField] - Y-axis field (auto-detected from first point)
+ * @param {string} [props.xLabel] - X-axis label (auto-generated if not provided)
+ * @param {string} [props.yLabel] - Y-axis label (auto-generated if not provided)
+ * @param {number} [props.metric] - Metric value to display (e.g., 0.95 for AUC)
+ * @param {string} [props.metricLabel] - Metric name (e.g., "AUC", "Average Precision")
+ * @param {boolean} [props.showDiagonal=false] - Show y=x diagonal line (for ROC)
+ * @returns {React.ReactElement|null} Canvas-based curve chart with tooltip
  */
 const CurveChart = ({
   data,           // Array of objects with numeric fields: [{x, y}, ...] OR {curves: [...]} for multi-run
@@ -42,7 +87,10 @@ const CurveChart = ({
   const legacyYLabel = customYLabelROC || customYLabelPR;
   const isROC = !!rocData || showDiagonal;
 
-  // Auto-detect field names from data
+  /**
+   * Auto-detect field names from data
+   * @returns {object} Object with x and y field names
+   */
   const detectFields = useCallback(() => {
     if (!curveData || curveData.length === 0) return { x: null, y: null };
 
@@ -56,6 +104,11 @@ const CurveChart = ({
     };
   }, [curveData, xField, yField]);
 
+  /**
+   * Draws the curve chart on the canvas
+   * @param {number} width - Canvas width
+   * @param {number} height - Canvas height
+   */
   const drawCurve = useCallback((width, height) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -94,7 +147,17 @@ const CurveChart = ({
       const yMin = Math.min(...yValues);
       const yMax = Math.max(...yValues);
 
+      /**
+       * Converts data X value to canvas X coordinate
+       * @param {number} val - Data X value
+       * @returns {number} Canvas X coordinate
+       */
       const toCanvasX = (val) => padding.left + ((val - xMin) / (xMax - xMin || 1)) * chartWidth;
+      /**
+       * Converts data Y value to canvas Y coordinate
+       * @param {number} val - Data Y value
+       * @returns {number} Canvas Y coordinate
+       */
       const toCanvasY = (val) => padding.top + chartHeight - ((val - yMin) / (yMax - yMin || 1)) * chartHeight;
 
       // Draw axes and grid
@@ -159,7 +222,17 @@ const CurveChart = ({
       const yMin = Math.min(...yValues);
       const yMax = Math.max(...yValues);
 
+      /**
+       * Converts data X value to canvas X coordinate
+       * @param {number} val - Data X value
+       * @returns {number} Canvas X coordinate
+       */
       const toCanvasX = (val) => padding.left + ((val - xMin) / (xMax - xMin || 1)) * chartWidth;
+      /**
+       * Converts data Y value to canvas Y coordinate
+       * @param {number} val - Data Y value
+       * @returns {number} Canvas Y coordinate
+       */
       const toCanvasY = (val) => padding.top + chartHeight - ((val - yMin) / (yMax - yMin || 1)) * chartHeight;
 
       drawAxes(ctx, width, height, padding, finalXLabel, finalYLabel);
@@ -221,15 +294,30 @@ const CurveChart = ({
   // Use responsive canvas hook - handles sizing and redraw automatically
   useResponsiveCanvas(canvasRef, drawCurve);
 
-  // Tooltip logic: find nearest point on curves (on-the-fly transform)
+  /**
+   * Tooltip logic: find nearest point on curves (on-the-fly transform)
+   * @param {number} mouseX - Mouse X coordinate
+   * @param {number} mouseY - Mouse Y coordinate
+   * @param {number} searchRadius - Search radius for finding nearest point
+   * @returns {object|null} Tooltip data or null if no point found
+   */
   const getTooltipData = useCallback((mouseX, mouseY, searchRadius) => {
     if (!plotDataRef.current) return null;
 
     const pd = plotDataRef.current;
     const { padding, chartWidth, chartHeight, xMin, xMax, yMin, yMax } = pd;
 
-    // Transform function
+    /**
+     * Converts data X value to canvas X coordinate
+     * @param {number} val - Data X value
+     * @returns {number} Canvas X coordinate
+     */
     const toCanvasX = (val) => padding.left + ((val - xMin) / (xMax - xMin || 1)) * chartWidth;
+    /**
+     * Converts data Y value to canvas Y coordinate
+     * @param {number} val - Data Y value
+     * @returns {number} Canvas Y coordinate
+     */
     const toCanvasY = (val) => padding.top + chartHeight - ((val - yMin) / (yMax - yMin || 1)) * chartHeight;
 
     let nearestPoint = null;

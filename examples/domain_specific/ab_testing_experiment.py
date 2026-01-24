@@ -7,9 +7,9 @@ This example demonstrates that Artifacta works for ANY experiment tracking, not 
 This example shows:
 1. **Domain-agnostic tracking** - Track A/B tests, marketing experiments, etc.
 2. **Parameter sweeps** - Run multiple experiments with different configurations
-3. **Distribution analysis** via ds.Distribution - Compare conversion rates by variant
-4. **Time series tracking** via ds.Series - Monitor cumulative metrics over time
-5. **Category comparison** via ds.BarChart - Visualize performance across variants
+3. **Distribution analysis** via Distribution - Compare conversion rates by variant
+4. **Time series tracking** via Series - Monitor cumulative metrics over time
+5. **Category comparison** via BarChart - Visualize performance across variants
 
 Scenario:
 We're testing different button colors on an e-commerce checkout page to see which
@@ -17,10 +17,10 @@ drives more conversions. We'll run multiple experiments with different sample si
 and traffic splits to demonstrate parameter sweeps.
 
 Key Artifacta Features Demonstrated:
-- ds.init() - Initialize experiment run with config (NOT ML-specific!)
-- ds.Distribution - Log conversion rates by variant (grouped data)
-- ds.Series - Log cumulative conversions over time
-- ds.BarChart - Compare final metrics across variants
+- init() - Initialize experiment run with config (NOT ML-specific!)
+- Distribution - Log conversion rates by variant (grouped data)
+- Series - Log cumulative conversions over time
+- BarChart - Compare final metrics across variants
 - Parameter sweeps - Run multiple experiments systematically
 
 Requirements:
@@ -35,7 +35,7 @@ from typing import Dict, List
 
 import numpy as np
 
-import artifacta as ds
+from artifacta import BarChart, Distribution, Series, init, log
 
 
 def simulate_button_test(
@@ -253,9 +253,9 @@ def run_ab_test_experiment(config: Dict, seed: int = 42):
         + ["Variant B (Red)"] * len(results["variant_b"]["samples"])
     )
 
-    ds.log(
+    log(
         "conversion_by_variant",
-        ds.Distribution(
+        Distribution(
             values=all_values.tolist(),
             groups=all_groups,
             metadata={
@@ -281,9 +281,9 @@ def run_ab_test_experiment(config: Dict, seed: int = 42):
         total_conversions, n_hours=config["test_duration_hours"], random_state=seed
     )
 
-    ds.log(
+    log(
         "cumulative_conversions",
-        ds.Series(
+        Series(
             index="hour",
             fields={
                 "control": time_series["control"],
@@ -323,9 +323,9 @@ def run_ab_test_experiment(config: Dict, seed: int = 42):
     # 4. Log comparison bar chart
     #    Shows side-by-side comparison of key metrics
     # =================================================================
-    ds.log(
+    log(
         "variant_comparison",
-        ds.BarChart(
+        BarChart(
             categories=["Control (Blue)", "Variant A (Green)", "Variant B (Red)"],
             groups={
                 "Conversion Rate (%)": [
@@ -351,9 +351,9 @@ def run_ab_test_experiment(config: Dict, seed: int = 42):
     # =================================================================
     # 5. Log final summary metrics as Series
     # =================================================================
-    ds.log(
+    log(
         "summary_metrics",
-        ds.Series(
+        Series(
             index="variant",
             fields={
                 "conversion_rate_pct": [
@@ -419,7 +419,7 @@ def main():
         },
     ]
 
-    print(f"\n✓ Running parameter sweep with {len(param_variations)} configurations...")
+    print(f"\nRunning parameter sweep with {len(param_variations)} configurations...")
 
     # =================================================================
     # Run experiments with different configurations
@@ -435,7 +435,7 @@ def main():
 
         # Initialize Artifacta run for this experiment
         run_name = f"button-test-{variation['name']}"
-        ds.init(project="ab-testing-demo", name=run_name, config=config)
+        init(project="ab-testing-demo", name=run_name, config=config)
 
         # Run the experiment
         run_ab_test_experiment(config, seed=42 + idx)
@@ -456,7 +456,7 @@ def main():
     print("\nRecommendation:")
     print("  → Deploy Variant A (Green button) to production!")
     print("  → Expected conversion lift: ~24%")
-    print("\n✓ All experiments logged to Artifacta")
+    print("\nAll experiments logged to Artifacta")
     print("  View detailed results in the Artifacta UI!")
     print("  Compare all runs in the project view to see how sample size")
     print("  affects confidence and statistical significance.")

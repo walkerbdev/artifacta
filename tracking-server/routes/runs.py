@@ -1,5 +1,115 @@
 # mypy: disable-error-code="misc,untyped-decorator,union-attr,no-any-return,arg-type"
-"""Run management endpoints - SQLAlchemy ORM version."""
+"""Run management endpoints for tracking server.
+
+This module implements HTTP endpoints for run creation, retrieval, and data emission.
+It serves as the primary interface between the Artifacta SDK (client) and the
+tracking server (backend), enabling real-time metrics logging and WebSocket broadcasts.
+
+Endpoint Overview:
+
+    POST /api/runs
+        - Create new run entry in database
+        - Called by SDK when run.start() is invoked
+        - Generates unique run name if not provided
+        - Broadcasts run creation to WebSocket clients
+        - Returns: {"status": "created", "run_id": "..."}
+
+    GET /api/runs
+        - List all runs with structured data
+        - Supports filtering by project, pagination via limit
+        - Optionally includes tags and params
+        - Groups structured data by metric name
+        - Returns: List[RunDict] with structured_data field
+
+    GET /api/runs/{run_id}
+        - Retrieve single run by ID
+        - Includes all structured data grouped by name
+        - Returns: RunDict with structured_data field
+
+    PATCH /api/runs/{run_id}/config-artifact
+        - Update run to link config artifact (single source of truth)
+        - Called by SDK after config artifact is logged
+        - Returns: {"status": "updated"}
+
+    POST /api/runs/{run_id}/data
+        - Log structured data primitive (Series, Distribution, etc.)
+        - Called by SDK when run.log() is invoked
+        - Stores data as JSON in database
+        - Broadcasts to WebSocket clients for real-time UI updates
+        - Returns: {"status": "logged"}
+
+Data Flow (SDK to UI):
+
+    1. SDK calls run.log(name="loss", data={"epoch": [1,2,3], "loss": [0.5,0.3,0.2]})
+    2. SDK sends POST to /api/runs/{run_id}/data with payload
+    3. Server validates and stores in StructuredData table
+    4. Server broadcasts to all connected WebSocket clients
+    5. UI receives WebSocket message and updates chart in real-time
+
+Config Artifact Linking:
+
+    The config artifact pattern ensures configuration is stored as an artifact
+    (for provenance) and linked to the run (for easy access):
+
+    1. SDK logs config as artifact via log_artifact()
+    2. SDK calls PATCH /api/runs/{run_id}/config-artifact with artifact_id
+    3. Server updates run.config_artifact_id foreign key
+    4. GET /api/runs fetches artifact content and parses config JSON
+    5. UI displays config in run details
+
+Structured Data Grouping:
+
+    Multiple emissions of the same metric name are grouped together:
+    - run.log("loss", ...) at step 1
+    - run.log("loss", ...) at step 2
+    - run.log("loss", ...) at step 3
+    - Result: structured_data["loss"] = [step1_data, step2_data, step3_data]
+
+    This enables:
+    - Line charts with multiple points
+    - Confusion matrices that update over epochs
+    - A/B test results with progressive accumulation
+
+WebSocket Broadcasting:
+
+    broadcast_to_websockets() helper:
+        1. Iterate over all connected WebSocket clients (global set)
+        2. Send JSON message via client.send_json()
+        3. Catch exceptions (client disconnected, network error)
+        4. Track disconnected clients in set
+        5. Remove disconnected clients from global set (cleanup)
+
+    Message format:
+        {
+            "type": "data_logged" | "run_created",
+            "payload": {
+                "run_id": "...",
+                "name": "loss",
+                "primitive_type": "series"
+            }
+        }
+
+Error Handling:
+
+    - HTTPException for client errors (404 Not Found, 400 Bad Request)
+    - Generic Exception caught and logged with exc_info=True
+    - Raised as HTTPException(500) with error details
+    - This prevents stack traces leaking to client
+
+Database Session Management:
+
+    - SQLAlchemy session injected via Depends(get_session)
+    - Session automatically committed at end of request (FastAPI middleware)
+    - Session rolled back on exception (automatic cleanup)
+    - No manual commit() needed in route handlers
+
+Performance Considerations:
+
+    - Queries use indexes (run_id, created_at, etc.) for fast lookups
+    - Limit parameter prevents unbounded result sets
+    - JSON parsing done lazily (only for requested runs)
+    - Structured data grouped in Python (not SQL) for flexibility
+"""
 
 import json
 import logging
@@ -183,10 +293,11 @@ async def list_runs(
             # Group by name
             structured_data: Dict[str, List[Dict[str, Any]]] = {}
             for data_row in structured_data_rows:
-                if data_row.name not in structured_data:
-                    structured_data[data_row.name] = []
+                name_key = str(data_row.name)
+                if name_key not in structured_data:
+                    structured_data[name_key] = []
 
-                structured_data[data_row.name].append(
+                structured_data[name_key].append(
                     {
                         "primitive_type": data_row.primitive_type,
                         "section": data_row.section,
@@ -240,10 +351,11 @@ async def get_run(
         # Group by name
         structured_data: Dict[str, List[Dict[str, Any]]] = {}
         for data_row in structured_data_rows:
-            if data_row.name not in structured_data:
-                structured_data[data_row.name] = []
+            name_key = str(data_row.name)
+            if name_key not in structured_data:
+                structured_data[name_key] = []
 
-            structured_data[data_row.name].append(
+            structured_data[name_key].append(
                 {
                     "primitive_type": data_row.primitive_type,
                     "section": data_row.section,
@@ -277,7 +389,7 @@ async def update_config_artifact(
         if not run:
             raise HTTPException(status_code=404, detail="Run not found")
 
-        run.config_artifact_id = request.config_artifact_id
+        run.config_artifact_id = request.config_artifact_id  # type: ignore[assignment]
         session.flush()
 
         return {"status": "updated"}

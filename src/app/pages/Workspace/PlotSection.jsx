@@ -7,17 +7,10 @@ import UniversalVisualizationRenderer from '@/app/components/visualizations/Univ
 /**
  * PlotSection - Collapsible section with draggable plots
  * Each section manages dragging/positioning for its own plots
- *
- * React key includes dataset count to prevent canvas reuse in multi-run mode
- *
- * Problem: When multiple runs are selected, line plot IDs remain constant (e.g., "Loss_line")
- * while the data changes (1 dataset -> 2 datasets -> 3 datasets). Without dataset count
- * in the React key, React's reconciliation reuses the same component instance, which means
- * the canvas element and its ref are also reused. This caused multiple plots to draw on the
- * same physical canvas, resulting in overlapping axis labels and incorrect zoom behavior.
- *
- * Solution: Include dataset count in the React key (e.g., "Loss_line_4_2" for 2 datasets).
- * When the number of datasets changes, React creates a fresh component with a new canvas.
+ * @param {object} props - Component props
+ * @param {string} props.sectionName - Name of the section
+ * @param {Array<object>} props.plots - Array of plot configurations to render
+ * @returns {React.ReactElement} The plot section component
  */
 export const PlotSection = ({
   sectionName,
@@ -43,6 +36,11 @@ export const PlotSection = ({
     updateLabels
   } = useLayoutManager();
 
+  /**
+   * Toggles the visibility of a specific plot by ID
+   * @param {string} plotId - The ID of the plot to toggle
+   * @returns {void}
+   */
   const togglePlotVisibility = (plotId) => {
     setHiddenPlots(prev => {
       const next = new Set(prev);
@@ -128,16 +126,9 @@ export const PlotSection = ({
           {plots.map((plotConfig, index) => {
             if (hiddenPlots.has(plotConfig.id)) return null;
 
-            // CRITICAL: Include dataset count in React key to prevent canvas reuse
-            // When multiple runs are selected, plot IDs stay the same (e.g., "Loss_line")
-            // but the number of datasets changes (1 dataset -> 2 datasets -> 3 datasets).
-            // Without proper key changes, React reuses the same component instance.
-            const datasetCount = plotConfig.data?.datasets?.length || 0;
-            const uniqueKey = `${plotConfig.id}_${index}_${datasetCount}`;
-
             return (
               <DraggableVisualization
-                key={uniqueKey}
+                key={`${plotConfig.id}_${index}`}
                 visualizationKey={plotConfig.id}
                 title={plotConfig.title}
                 onClose={togglePlotVisibility}

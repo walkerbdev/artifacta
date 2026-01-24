@@ -32,7 +32,7 @@ def test_classification_runs():
     ]
 
     for run_name, target_accuracy, epochs, learning_rate, batch_size in scenarios:
-        print(f"\n🔵 Creating: {run_name}")
+        print(f"\nCreating: {run_name}")
         config = {
             "learning_rate": learning_rate,
             "batch_size": batch_size,
@@ -209,7 +209,7 @@ def test_classification_runs():
         code_path = os.path.join(os.path.dirname(__file__), "../fixtures/code/pytorch")
         run.log_input(code_path)
 
-        print(f"  ✅ Completed: {run_name} (final acc: {accuracy:.3f})")
+        print(f"  Completed: {run_name} (final acc: {accuracy:.3f})")
         time.sleep(0.3)
 
 
@@ -225,7 +225,7 @@ def test_regression_runs():
     ]
 
     for run_name, target_r2, epochs, batch_size in scenarios:
-        print(f"\n🟢 Creating: {run_name}")
+        print(f"\nCreating: {run_name}")
         config = {
             "learning_rate": 0.001,
             "batch_size": batch_size,
@@ -362,5 +362,5 @@ def test_regression_runs():
         code_path = os.path.join(os.path.dirname(__file__), "../fixtures/code/pytorch")
         run.log_input(code_path)
 
-        print(f"  ✅ Completed: {run_name} (final R²: {r2:.3f})")
+        print(f"  Completed: {run_name} (final R²: {r2:.3f})")
         time.sleep(0.3)

@@ -124,6 +124,22 @@ Base Integration
    :undoc-members:
    :show-inheritance:
 
+scikit-learn
+~~~~~~~~~~~~
+
+.. automodule:: artifacta.artifacta.integrations.sklearn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+XGBoost
+~~~~~~~
+
+.. automodule:: artifacta.artifacta.integrations.xgboost
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 PyTorch Lightning
 ~~~~~~~~~~~~~~~~~
 
@@ -132,8 +148,8 @@ PyTorch Lightning
    :undoc-members:
    :show-inheritance:
 
-TensorFlow
-~~~~~~~~~~
+TensorFlow/Keras
+~~~~~~~~~~~~~~~~
 
 .. automodule:: artifacta.artifacta.integrations.tensorflow
    :members:

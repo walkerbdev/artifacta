@@ -83,8 +83,8 @@ export function getArtifactColor(name) {
 }
 
 /**
- * Get all available extension colors (for reference/debugging)
- * @returns {Object} Extension to color mapping
+ * Get all available extension colors (for reference/debugging).
+ * @returns {object} Extension to color mapping
  */
 export function getAllExtensionColors() {
   return { ...EXTENSION_COLORS };

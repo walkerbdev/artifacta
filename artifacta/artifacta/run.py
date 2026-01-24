@@ -1,4 +1,15 @@
-"""Run management."""
+"""Run management with provenance tracking and artifact logging.
+
+The Run class is the core abstraction for experiment tracking in Artifacta.
+It orchestrates metric logging, artifact management, and system monitoring
+while maintaining full reproducibility through content-addressed storage.
+
+Key components:
+- HTTPEmitter: Real-time communication with tracking server (MLflow/W&B pattern)
+- SystemMonitor: Background thread for CPU/memory/GPU metrics
+- Artifact hashing: SHA256-based content addressing for reproducibility
+- Auto-provenance: Automatic capture of config, dependencies, environment
+"""
 
 import hashlib
 import json
@@ -19,16 +30,43 @@ from .primitives import (
 
 
 class Run:
-    """A single training run."""
+    """A single training run with provenance tracking and artifact management.
+
+    The Run class is the core abstraction for experiment tracking in Artifacta.
+    It handles:
+    - Automatic provenance capture (config, dependencies, environment, code)
+    - Real-time metric emission to tracking server via HTTP
+    - Artifact logging with content-addressed storage (SHA256 hashing)
+    - System monitoring (CPU, memory, GPU) in background thread
+    - Graceful degradation when tracking server is unavailable
+
+    Architecture:
+    - HTTPEmitter: Sends data to tracking server in real-time (MLflow/W&B pattern)
+    - SystemMonitor: Background thread that captures system metrics every N seconds
+    - Artifact hashing: SHA256 of file contents ensures reproducibility tracking
+
+    Lifecycle:
+    1. __init__: Create run object with metadata
+    2. start(): Auto-log provenance artifacts, start system monitoring
+    3. log()/log_artifact(): Log data during training
+    4. finish(): Stop monitoring, close connections
+
+    Example:
+        >>> import artifacta as ds
+        >>> run = ds.init(project="mnist", name="exp-1", config={"lr": 0.001})
+        >>> run.log("metrics", {"epoch": [1,2,3], "loss": [0.5, 0.3, 0.2]})
+        >>> run.log_output("model.pt")
+        >>> run.finish()
+    """
 
     def __init__(self, project, name, config, code_dir=None):
-        """Initialize a Run instance.
+        """Initialize a Run instance with metadata.
 
         Args:
-            project: Project name.
-            name: Run name.
-            config: Configuration dictionary.
-            code_dir: Optional code directory path.
+            project: Project name for grouping related experiments.
+            name: Human-readable run name (auto-generated if None).
+            config: Configuration dictionary (hyperparameters, settings).
+            code_dir: Optional code directory path for artifact logging.
         """
         self.id = f"run_{int(time.time() * 1000)}"
         self.project = project
@@ -50,7 +88,26 @@ class Run:
         self.code_artifact_hash = None  # Hash of logged code artifact (if any)
 
     def start(self):
-        """Start the run and auto-log provenance artifacts."""
+        """Start the run and auto-log provenance artifacts.
+
+        Initialization sequence:
+        1. Emit run creation to tracking server (creates database entry)
+        2. Auto-log provenance artifacts as inputs:
+           - config.json: Hyperparameter configuration (JSON)
+           - requirements.txt: pip freeze output (dependencies)
+           - environment.json: Platform info (Python version, OS, CUDA)
+        3. Start system monitoring background thread (1-second interval)
+
+        Why 1-second interval for system monitoring:
+        - Short training runs (< 30s) need faster sampling to capture metrics
+        - Balances data granularity with overhead
+        - Can be adjusted for longer experiments
+
+        Graceful degradation:
+        - If tracking server is unavailable, HTTPEmitter disables itself
+        - Run continues normally, but metrics aren't persisted
+        - Useful for offline development
+        """
         self.started_at = datetime.utcnow()
 
         # Emit run creation to API Gateway (simplified - no config/tags)
@@ -66,12 +123,25 @@ class Run:
         self.monitor = SystemMonitor(interval=1, http_emitter=self.http_emitter)
         self.monitor.start()
 
-        print(f"🚀 Run started: {self.name}")
+        print(f"Run started: {self.name}")
         print(f"   ID: {self.id}")
         print(f"   Project: {self.project}")
 
     def log(self, name: str, data, section: str = None):
         """Log structured data - accepts primitives OR plain Python types (auto-converted).
+
+        How it works:
+        1. Auto-convert plain Python types to primitives (see primitives.py:auto_convert)
+        2. Extract primitive type from PRIMITIVE_TYPES mapping
+        3. Convert primitive to dict representation
+        4. Emit to tracking server via HTTP (real-time)
+        5. Server broadcasts to WebSocket clients for live UI updates
+
+        Auto-conversion rules:
+        - dict with list values → Series primitive
+        - 1D list/array → Distribution primitive
+        - 2D list/array → Matrix primitive
+        - numpy arrays → Distribution or Matrix based on dimensions
 
         Args:
             name: Name for this data object (e.g., "training_metrics", "confusion_matrix")
@@ -125,7 +195,21 @@ class Run:
         )
 
     def log_artifact(self, name, path, include_content=True, metadata=None, role="output"):
-        """Log an artifact (file or directory) for this run.
+        """Log an artifact (file or directory) for this run with content-addressed storage.
+
+        How it works:
+        1. Collect file metadata (MIME type, size, path) using artifacts.collect_files
+        2. Compute SHA256 hash of file contents for content addressing
+        3. Inline text file contents if include_content=True (useful for code files)
+        4. Auto-extract metadata from model files (PyTorch, TensorFlow, ONNX)
+        5. Emit artifact to tracking server with metadata + content
+        6. Track code artifact hash for provenance
+
+        Content addressing (SHA256):
+        - Single file: hash of file contents
+        - Directory: hash of all file contents + filenames (sorted)
+        - Enables reproducibility tracking and deduplication
+        - Used for lineage graph and experiment comparison
 
         Works with both single files and directories containing multiple files.
         Each file in the collection retains its own type information (MIME type, language, etc).
@@ -195,9 +279,8 @@ class Run:
         # Print summary
         file_count = files_data["total_files"]
         size_mb = files_data["total_size"] / 1024 / 1024
-        emoji = "📦" if file_count > 1 else "📄"
 
-        print(f"{emoji} Artifact logged: {name}")
+        print(f"Artifact logged: {name}")
         print(f"   Path: {path}")
         print(f"   Files: {file_count}")
         print(f"   Size: {size_mb:.2f} MB")
@@ -231,6 +314,31 @@ class Run:
             name, path, include_content=include_content, metadata=metadata, role="input"
         )
 
+    def update_config(self, new_config: dict):
+        """Update run configuration with new parameters.
+
+        Merges new_config into existing config and re-logs the config artifact.
+        Useful for autolog scenarios where parameters are discovered during training
+        (e.g., optimizer config, framework-specific params).
+
+        Args:
+            new_config: Dictionary of new configuration parameters to merge
+
+        Examples:
+            >>> # User initializes with their hyperparameters
+            >>> run = init(project="mnist", config={"batch_size": 32, "epochs": 10})
+            >>>
+            >>> # Autolog discovers optimizer config during training
+            >>> run.update_config({"optimizer": "Adam", "lr": 0.001, "weight_decay": 1e-5})
+            >>>
+            >>> # Final config contains both user and auto-discovered params
+            >>> print(run.config)
+            >>> # {"batch_size": 32, "epochs": 10, "optimizer": "Adam", "lr": 0.001, "weight_decay": 1e-5}
+        """
+        if new_config:
+            self.config.update(new_config)
+            self._log_config_artifact()  # Re-log config artifact with updated values
+
     def log_output(self, path, name=None, include_content=True, metadata=None):
         """Log an output artifact (file or directory) for this run.
 
@@ -261,13 +369,26 @@ class Run:
         )
 
     def _compute_artifact_hash(self, path):
-        """Compute SHA256 hash of file(s) at path.
+        """Compute SHA256 hash of file(s) at path for content addressing.
+
+        Hashing strategy:
+        - Single file: SHA256 of raw file contents (read in 8KB chunks)
+        - Directory: SHA256 of all files + filenames (sorted for determinism)
+
+        Why include filenames in directory hash:
+        - Renaming a file changes the artifact identity
+        - Moving files between directories changes identity
+        - Ensures that directory structure matters, not just file contents
+
+        Performance:
+        - Chunk-based reading (8KB) handles large files without memory issues
+        - Recursive glob sorted by path ensures deterministic ordering
 
         Args:
             path: Path object (file or directory).
 
         Returns:
-            SHA256 hash string.
+            SHA256 hash string (hex digest).
         """
         import hashlib
 
@@ -423,5 +544,5 @@ class Run:
         # Close HTTP emitter
         self.http_emitter.close()
 
-        print(f"✅ Run finished: {self.name}")
+        print(f"Run finished: {self.name}")
         print(f"   Summary: {self.summary}")

@@ -2,8 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { SIDEBAR_STYLES } from '@/app/styles/sidebarConstants';
 
 /**
- * Hierarchy definition: order of hash keys for grouping (most → least important)
- * This defines the tree structure from root to leaves
+ * Hierarchy definition for run tree grouping
+ *
+ * Defines the order of hash-based grouping from most to least important.
+ * Runs are grouped by code changes first, then config, then environment, etc.
+ * This creates a deterministic tree structure for reproducibility tracking.
  */
 const HASH_HIERARCHY = [
   { key: 'hash.code', label: 'Code' },
@@ -14,14 +17,21 @@ const HASH_HIERARCHY = [
 ];
 
 /**
- * Generic recursive tree builder with auto-collapsing of redundant levels
- * Groups runs hierarchically by hash keys in specified order
- * Skips levels where all runs have the same value (redundant grouping)
+ * Recursive tree builder with auto-collapsing of redundant levels
  *
- * @param {Array} runs - Array of run objects
- * @param {Array} hierarchy - Array of hash keys to group by (in order)
- * @param {number} depth - Current depth in tree (0 = root)
- * @returns {Array} Tree nodes with structure: { hashKey, hashValue, label, runs, children }
+ * Groups runs hierarchically by hash values in the specified order.
+ * Automatically skips levels where all runs have identical values (no point grouping).
+ *
+ * Algorithm:
+ * 1. At each level, group runs by current hash key value
+ * 2. If only one unique value exists, skip this level (redundant)
+ * 3. Otherwise, create nodes for each unique value
+ * 4. Recursively build children at next hierarchy level
+ *
+ * @param {Array<object>} runs - Runs to organize
+ * @param {Array<object>} [hierarchy=HASH_HIERARCHY] - Hash keys to group by
+ * @param {number} [depth=0] - Current recursion depth
+ * @returns {Array} Tree nodes: { hashKey, hashValue, label, runs, children }
  */
 function buildHashTree(runs, hierarchy = HASH_HIERARCHY, depth = 0) {
   // Base case: no more hierarchy levels or no runs
@@ -80,6 +90,14 @@ function buildHashTree(runs, hierarchy = HASH_HIERARCHY, depth = 0) {
 
 /**
  * Recursive tree node renderer
+ * @param {object} props - Component props
+ * @param {object} props.node - Tree node data
+ * @param {Array} props.allRuns - All runs in the tree
+ * @param {Array<string>} props.selectedRunIds - Array of selected run IDs
+ * @param {(runIds: Array<string>) => void} props.onRunSelectionChange - Callback for selection changes
+ * @param {Set} props.collapsedNodes - Set of collapsed node IDs
+ * @param {(nodeId: string) => void} props.toggleNode - Callback to toggle node collapse state
+ * @returns {React.ReactElement} Rendered tree node
  */
 function TreeNode({ node, allRuns, selectedRunIds, onRunSelectionChange, collapsedNodes, toggleNode }) {
 
@@ -88,6 +106,11 @@ function TreeNode({ node, allRuns, selectedRunIds, onRunSelectionChange, collaps
   const isCollapsed = collapsedNodes.has(nodeId);
   const isNodeSelected = node.runs?.some(r => selectedRunIds.includes(r.run_id)) ?? false;
 
+  /**
+   * Handles click event on a run item to toggle its selection
+   * @param {string} runId - ID of the run to toggle
+   * @returns {void}
+   */
   const handleRunClick = (runId) => {
     const isSelected = selectedRunIds.includes(runId);
     const newSelection = isSelected
@@ -223,7 +246,40 @@ function TreeNode({ node, allRuns, selectedRunIds, onRunSelectionChange, collaps
 }
 
 /**
- * Git-tree style run browser with multi-level hash-based grouping
+ * Run Tree component for hierarchical run organization and selection
+ *
+ * Git-style tree browser that groups experiment runs by reproducibility hashes.
+ * Helps identify which runs were conducted under identical conditions (code, config,
+ * environment, dependencies, platform).
+ *
+ * Features:
+ * - Multi-level hash-based grouping (code → config → env → deps → platform)
+ * - Auto-collapse redundant levels (skips levels where all runs are identical)
+ * - Collapsible tree nodes
+ * - Multi-select with checkboxes (supports selecting entire groups)
+ * - Visual hierarchy with indentation
+ * - Shows run counts per group
+ * - Newest-first sorting
+ *
+ * Use cases:
+ * - Finding reproducible runs (same code + config = should get same results)
+ * - Identifying what changed between runs
+ * - Bulk-selecting runs from same experiment batch
+ * - Debugging environment/dependency issues
+ *
+ * Hash hierarchy (top to bottom):
+ * 1. Code - Git commit hash or code content hash
+ * 2. Config - Hyperparameter configuration hash
+ * 3. Environment - Environment variables hash
+ * 4. Dependencies - Package versions hash
+ * 5. Platform - OS/hardware hash
+ *
+ * @param {object} props - Component props
+ * @param {Array<object>} props.runs - Experiment runs to organize
+ * @param {Array<string>} props.selectedRunIds - Currently selected run IDs
+ * @param {function} props.onRunSelectionChange - Callback when selection changes
+ *   Signature: (runIds: Array<string>) => void
+ * @returns {React.ReactElement} Hierarchical tree with selectable runs
  */
 export function RunTree({ runs, selectedRunIds, onRunSelectionChange }) {
   // Track which nodes are collapsed (by nodeId: "hashKey:hashValue")
@@ -235,6 +291,11 @@ export function RunTree({ runs, selectedRunIds, onRunSelectionChange }) {
     return result;
   }, [runs]);
 
+  /**
+   * Toggles the collapsed state of a tree node
+   * @param {string} nodeId - ID of the node to toggle
+   * @returns {void}
+   */
   const toggleNode = (nodeId) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev);

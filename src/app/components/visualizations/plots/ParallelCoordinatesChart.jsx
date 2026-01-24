@@ -5,9 +5,41 @@ import { useResponsiveCanvas } from '@/app/hooks/useResponsiveCanvas';
 import { CHART_PADDING } from '@/core/utils/constants';
 
 /**
- * Parallel Coordinates Chart
- * Visualizes relationships between hyperparameters and a selected metric across multiple runs
- * Features: smooth curves, color gradient by metric value, hover tooltips, metric aggregation
+ * Parallel Coordinates Chart for hyperparameter sweep visualization
+ *
+ * Advanced multi-dimensional visualization showing relationships between hyperparameters
+ * and metrics across multiple runs. Each run is a polyline connecting parameter values
+ * to metric outcome, colored by performance.
+ *
+ * Features:
+ * - Multi-dimensional visualization (unlimited parameters + 1 metric)
+ * - Color gradient by metric value (green = better, red = worse)
+ * - Interactive hover tooltips showing full run details
+ * - Metric aggregation options (last, max, min, avg)
+ * - Metric selector dropdown
+ * - Smooth B-spline curves between axes
+ * - Auto-scaled axes with min/max normalization
+ * - HiDPI display support
+ *
+ * Use cases:
+ * - Identify optimal hyperparameter combinations
+ * - Detect parameter interactions (parallel/crossing lines)
+ * - Compare run performance across multiple dimensions
+ *
+ * How to read it:
+ * - Each vertical axis represents a hyperparameter or the selected metric
+ * - Each polyline represents one experiment run
+ * - Line color indicates metric performance (customizable gradient)
+ * - Parallel lines = parameters change together
+ * - Crossing lines = parameter interactions/trade-offs
+ *
+ * @param {object} props - Component props
+ * @param {Array<string>} props.hyperparameters - Parameter names to visualize
+ * @param {Array<string>} props.availableMetrics - Metrics available for selection
+ * @param {string} [props.defaultMetric] - Initial metric to display
+ * @param {Array<object>} [props.data] - Pre-aggregated run data (if available)
+ * @param {Array<object>} [props.runs] - Raw run objects for on-the-fly aggregation
+ * @returns {React.ReactElement} Canvas-based parallel coordinates chart
  */
 const ParallelCoordinatesChart = ({ hyperparameters, availableMetrics, defaultMetric, data, runs }) => {
   const canvasRef = useRef(null);
@@ -32,8 +64,12 @@ const ParallelCoordinatesChart = ({ hyperparameters, availableMetrics, defaultMe
     return [...hyperparameters, selectedMetric];
   }, [hyperparameters, selectedMetric]);
 
-  // Color gradient function (purple/blue -> teal -> green, inspired by W&B)
-  const getGradientColor = (normalizedValue) => {
+  /**
+   * Generates a color gradient from purple-blue (low) to cyan to green (high)
+   * @param {number} normalizedValue - Normalized value between 0 and 1
+   * @returns {string} RGB color string
+   */
+  const getGradientColor = useCallback((normalizedValue) => {
     // Beautiful gradient: purple-blue (low) -> cyan -> green-yellow (high)
     if (normalizedValue < 0.5) {
       // 0.0 -> 0.5: purple-blue (#8B5CF6) to cyan (#06B6D4)
@@ -50,7 +86,7 @@ const ParallelCoordinatesChart = ({ hyperparameters, availableMetrics, defaultMe
       const b = Math.round(212 + (129 - 212) * t);
       return `rgb(${r}, ${g}, ${b})`;
     }
-  };
+  }, []);
 
   // Normalize data for each axis to 0-1 range
   const normalizedData = useMemo(() => {
@@ -133,8 +169,14 @@ const ParallelCoordinatesChart = ({ hyperparameters, availableMetrics, defaultMe
         metricValue
       };
     });
-  }, [aggregatedData, axes, hyperparameters, selectedMetric]);
+  }, [aggregatedData, axes, hyperparameters, selectedMetric, getGradientColor]);
 
+  /**
+   * Draws the parallel coordinates chart on the canvas
+   * @param {number} width - Canvas width in pixels
+   * @param {number} height - Canvas height in pixels
+   * @returns {void}
+   */
   const drawChart = useCallback((width, height) => {
     const canvas = canvasRef.current;
     if (!canvas || !normalizedData || !axes || axes.length === 0) return;
@@ -267,13 +309,18 @@ const ParallelCoordinatesChart = ({ hyperparameters, availableMetrics, defaultMe
     });
 
     ctx.globalAlpha = 1.0;
-  }, [normalizedData, axes, hoveredRun]);
+  }, [normalizedData, axes, hoveredRun, getGradientColor]);
 
   useResponsiveCanvas(canvasRef, drawChart);
 
   // Throttled mouse move handler for performance
   const throttledMouseMoveRef = useRef(null);
 
+  /**
+   * Handles mouse move events over the canvas for hover detection
+   * @param {object} e - Mouse event object
+   * @returns {void}
+   */
   const handleMouseMove = useCallback((e) => {
     // Throttle to ~60fps
     if (throttledMouseMoveRef.current) return;

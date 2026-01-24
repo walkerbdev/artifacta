@@ -2,8 +2,36 @@ import React from 'react';
 import './PlotTooltip.css';
 
 /**
- * Unified tooltip component for all plot types
- * Handles positioning, formatting, and rendering of tooltip data
+ * Plot Tooltip component for displaying data point details on hover
+ *
+ * Unified tooltip rendering for all plot types (line, scatter, heatmap, curves, etc.).
+ * Automatically positions itself to avoid screen edges and formats data appropriately.
+ *
+ * Features:
+ * - Smart edge detection (flips to left/top/bottom if near edge)
+ * - Type-specific rendering (series, scatter, matrix, curve, distribution)
+ * - Custom value formatters
+ * - Fixed positioning (follows cursor)
+ * - High z-index (always on top)
+ * - Pointer-events: none (doesn't block mouse)
+ *
+ * Supported data types:
+ * - series: Time series with index + multiple values
+ * - scatter: X/Y coordinates with optional label
+ * - matrix: Row/col/value for heatmaps
+ * - curve: X/Y for ROC/PR curves with metric display
+ * - distribution: Count + range for histograms
+ * - generic: Key-value pairs for fallback
+ *
+ * @param {object} props - Component props
+ * @param {boolean} props.visible - Whether tooltip should be shown
+ * @param {number} props.x - Screen X coordinate (from mouse event)
+ * @param {number} props.y - Screen Y coordinate (from mouse event)
+ * @param {object|null} props.data - Tooltip data: { type, content }
+ * @param {object} [props.formatters={}] - Custom formatters:
+ *   - value: (v) => string - Format numeric values
+ *   - index: (v) => string - Format index values
+ * @returns {React.ReactElement|null} Positioned tooltip or null if not visible
  */
 const PlotTooltip = ({ visible, x, y, data, formatters = {} }) => {
   if (!visible || !data) return null;
@@ -41,6 +69,9 @@ const PlotTooltip = ({ visible, x, y, data, formatters = {} }) => {
 
 /**
  * Render tooltip content based on data structure
+ * @param {object} data - Data object containing type and content
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered tooltip content
  */
 function renderTooltipContent(data, formatters) {
   const { type, content } = data;
@@ -61,6 +92,12 @@ function renderTooltipContent(data, formatters) {
   }
 }
 
+/**
+ * Render series data tooltip
+ * @param {object} content - Series content with index and values
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered series tooltip
+ */
 function renderSeriesData(content, formatters) {
   const { index, indexLabel, values } = content;
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(4) : v);
@@ -83,6 +120,12 @@ function renderSeriesData(content, formatters) {
   );
 }
 
+/**
+ * Render scatter plot data tooltip
+ * @param {object} content - Scatter content with x, y coordinates and label
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered scatter tooltip
+ */
 function renderScatterData(content, formatters) {
   const { x, y, label, color } = content;
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(4) : v);
@@ -112,6 +155,12 @@ function renderScatterData(content, formatters) {
   );
 }
 
+/**
+ * Render matrix data tooltip
+ * @param {object} content - Matrix content with row, column and value
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered matrix tooltip
+ */
 function renderMatrixData(content, formatters) {
   const { row, col, value } = content;
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(2) : v);
@@ -134,6 +183,12 @@ function renderMatrixData(content, formatters) {
   );
 }
 
+/**
+ * Render curve data tooltip
+ * @param {object} content - Curve content with x, y coordinates and labels
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered curve tooltip
+ */
 function renderCurveData(content, formatters) {
   const { x, y, xLabel, yLabel, metric } = content;
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(4) : v);
@@ -155,6 +210,12 @@ function renderCurveData(content, formatters) {
   );
 }
 
+/**
+ * Render distribution data tooltip
+ * @param {object} content - Distribution content with count and range
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered distribution tooltip
+ */
 function renderDistributionData(content, formatters) {
   const { count, range } = content;
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(2) : v);
@@ -177,6 +238,12 @@ function renderDistributionData(content, formatters) {
   );
 }
 
+/**
+ * Render generic data tooltip
+ * @param {object} content - Generic content object with key-value pairs
+ * @param {object} formatters - Formatters for value display
+ * @returns {object} Rendered generic tooltip
+ */
 function renderGenericData(content, formatters) {
   const formatValue = formatters.value || ((v) => typeof v === 'number' ? v.toFixed(4) : v);
 

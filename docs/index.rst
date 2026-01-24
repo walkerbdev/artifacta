@@ -51,7 +51,8 @@ Quick Links
 
 - :doc:`user-guide` - Complete user guide
 - :doc:`examples` - Example notebooks and scripts
-- :doc:`api` - Complete API reference
+- :doc:`api` - Python API reference
+- :doc:`ui-api` - UI Components & Utilities API
 - :doc:`development` - Development and testing guide
 
 .. toctree::
@@ -61,6 +62,7 @@ Quick Links
    user-guide
    examples
    api
+   ui-api
    development
 
 Indices and tables

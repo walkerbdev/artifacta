@@ -3,6 +3,36 @@ import { HiPlus, HiDocumentText } from 'react-icons/hi';
 import { apiClient } from '@/core/api/ApiClient';
 import { SIDEBAR_STYLES } from '@/app/styles/sidebarConstants';
 
+/**
+ * Projects Panel component for managing projects and notes
+ *
+ * Sidebar panel showing all projects and their associated notes. Projects automatically
+ * group experiment runs and can have multiple notes attached for documentation.
+ *
+ * Features:
+ * - Project list with run counts
+ * - Notes list per project
+ * - Create new notes (+ button)
+ * - Click note to open in Notes tab
+ * - Auto-refresh when notes change
+ * - Implicit projects (auto-created from runs)
+ * - Explicit projects (manually created)
+ *
+ * Project types:
+ * - Implicit: Auto-created when runs logged to a project_id
+ * - Explicit: Created via API or UI
+ *
+ * @param {object} props - Component props
+ * @param {Array<object>} props.runs - All experiment runs (for project→run mapping)
+ * @param {function} props.onNoteSelect - Callback when note clicked
+ *   Signature: (projectId: string, note: object) => void
+ *   Opens note in Notes tab
+ * @param {function} props.onNewNote - Callback to create new note
+ *   Signature: (projectId: string) => void
+ * @param {function} props.onTabChange - Callback to switch tabs
+ *   Signature: (tab: string) => void
+ * @returns {React.ReactElement} Projects and notes sidebar panel
+ */
 export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) => {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -11,6 +41,10 @@ export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) =>
 
   // Fetch all projects (explicit + implicit from runs)
   useEffect(() => {
+    /**
+     * Loads all projects from the API and merges them with runs data
+     * @returns {Promise<void>} Promise that resolves when projects are loaded
+     */
     const loadProjects = async () => {
       try {
         const data = await apiClient.getProjects();
@@ -68,6 +102,10 @@ export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) =>
 
   // Listen for custom event to refresh notes
   useEffect(() => {
+    /**
+     * Handles the refresh event by incrementing the notes version
+     * @returns {void}
+     */
     const handleRefresh = () => {
       setNotesVersion(prev => prev + 1);
     };
@@ -76,6 +114,11 @@ export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) =>
     return () => window.removeEventListener('refreshProjectNotes', handleRefresh);
   }, []);
 
+  /**
+   * Loads notes for a specific project
+   * @param {string} projectId - The ID of the project to load notes for
+   * @returns {Promise<void>} Promise that resolves when notes are loaded
+   */
   const loadNotes = async (projectId) => {
     try {
       const data = await apiClient.getProjectNotes(projectId);
@@ -86,6 +129,11 @@ export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) =>
     }
   };
 
+  /**
+   * Handles clicking on a project to expand/collapse it
+   * @param {string} projectId - The ID of the project that was clicked
+   * @returns {void}
+   */
   const handleProjectClick = (projectId) => {
     if (selectedProject === projectId) {
       setSelectedProject(null);
@@ -95,18 +143,31 @@ export const ProjectsPanel = ({ runs, onNoteSelect, onNewNote, onTabChange }) =>
     }
   };
 
+  /**
+   * Handles clicking on a note to view it
+   * @param {object} note - The note object that was clicked
+   * @returns {void}
+   */
   const handleNoteClick = (note) => {
     // Switch to Notes tab and load the note
     onTabChange('notes');
     onNoteSelect(selectedProject, note);
   };
 
+  /**
+   * Handles creating a new note for the selected project
+   * @returns {void}
+   */
   const handleCreateNote = () => {
     // Switch to Notes tab and create new note
     onTabChange('notes');
     onNewNote(selectedProject);
   };
 
+  /**
+   * Handles creating a new project with a user-provided name
+   * @returns {Promise<void>} Promise that resolves when project is created
+   */
   const handleCreateProject = async () => {
     const projectName = window.prompt('Enter project name:');
     if (!projectName) return;

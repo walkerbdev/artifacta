@@ -4,18 +4,18 @@ TensorFlow/Keras Regression Example with Artifacta
 
 This example demonstrates Artifacta's logging capabilities for TensorFlow/Keras training:
 
-1. **Automatic checkpoint logging** via ds.autolog() - tracks model checkpoints automatically
-2. **Training curves** via ds.Series - tracks train/validation loss over epochs
-3. **Prediction visualization** via ds.Scatter - plots predicted vs actual values
-4. **Residual analysis** via ds.Distribution - analyzes prediction errors
+1. **Automatic checkpoint logging** via autolog() - tracks model checkpoints automatically
+2. **Training curves** via Series - tracks train/validation loss over epochs
+3. **Prediction visualization** via Scatter - plots predicted vs actual values
+4. **Residual analysis** via Distribution - analyzes prediction errors
 5. **Model artifact logging** - saves trained model with metadata
 
 Key Artifacta Features Demonstrated:
-- ds.init() - Initialize experiment run with config
-- ds.autolog() - Enable automatic checkpoint logging for Keras
-- ds.Series - Log time-series metrics (loss curves)
-- ds.Scatter - Log 2D scatter plots (predictions vs actual)
-- ds.Distribution - Log value distributions (residuals)
+- init() - Initialize experiment run with config
+- autolog() - Enable automatic checkpoint logging for Keras
+- Series - Log time-series metrics (loss curves)
+- Scatter - Log 2D scatter plots (predictions vs actual)
+- Distribution - Log value distributions (residuals)
 - run.log_output() - Save model artifacts
 
 Requirements:
@@ -30,7 +30,7 @@ from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-import artifacta as ds
+from artifacta import Distribution, Scatter, Series, autolog, init, log
 
 # Import TensorFlow/Keras
 try:
@@ -54,7 +54,7 @@ def create_synthetic_data(n_samples=1000, n_features=10, noise=10.0, random_stat
     Returns:
         Tuple of (x_train, x_test, y_train, y_test, scaler_x, scaler_y)
     """
-    print("\n✓ Generating synthetic regression data...")
+    print("\nGenerating synthetic regression data...")
 
     # Generate regression data
     # make_regression creates a random regression problem
@@ -111,7 +111,7 @@ def create_model(input_dim, hidden_dim=64, learning_rate=0.001):
     Returns:
         Compiled Keras model
     """
-    print("\n✓ Creating neural network model...")
+    print("\nCreating neural network model...")
 
     model = keras.Sequential(
         [
@@ -155,79 +155,78 @@ def main():
     print("=" * 70)
 
     # =================================================================
-    # 1. Configuration variations - run 3 experiments with different hyperparameters
+    # 1. Define hyperparameter search space (grid search)
     # =================================================================
-    configs = [
-        {
-            "hidden_dim": 32,
-            "learning_rate": 0.001,
-            "batch_size": 32,
-            "epochs": 50,
-            "n_samples": 1000,
-            "n_features": 10,
-            "noise": 10.0,
+    from itertools import product
+
+    # Define parameter grid - typical grid search approach
+    param_grid = {
+        "hidden_dim": [32, 64, 128],
+        "learning_rate": [0.001, 0.01],
+        "batch_size": [32],
+        "epochs": [10],
+    }
+
+    # Fixed dataset parameters
+    dataset_config = {
+        "n_samples": 1000,
+        "n_features": 10,
+        "noise": 10.0,
+    }
+
+    # Generate all combinations
+    keys = param_grid.keys()
+    values = param_grid.values()
+    configs = [dict(zip(keys, v)) for v in product(*values)]
+
+    # Add dataset config and metadata to each config
+    for config in configs:
+        config.update(dataset_config)
+        config.update({
             "optimizer": "Adam",
             "loss": "mse",
             "model": "FeedForwardNN",
-            "name": "small-network",
-        },
-        {
-            "hidden_dim": 64,
-            "learning_rate": 0.01,
-            "batch_size": 32,
-            "epochs": 50,
-            "n_samples": 1000,
-            "n_features": 10,
-            "noise": 10.0,
-            "optimizer": "Adam",
-            "loss": "mse",
-            "model": "FeedForwardNN",
-            "name": "medium-network",
-        },
-        {
-            "hidden_dim": 128,
-            "learning_rate": 0.001,
-            "batch_size": 32,
-            "epochs": 50,
-            "n_samples": 1000,
-            "n_features": 10,
-            "noise": 10.0,
-            "optimizer": "Adam",
-            "loss": "mse",
-            "model": "FeedForwardNN",
-            "name": "large-network",
-        },
-    ]
+        })
+
+    print(f"\nGrid search: {len(configs)} configurations")
+    print("  Parameter grid:")
+    for key, values in param_grid.items():
+        print(f"    {key}: {values}")
+    print("  Dataset config:")
+    for key, value in dataset_config.items():
+        print(f"    {key}: {value}")
 
     # =================================================================
     # 2. Run experiments with different configurations
     # =================================================================
     for idx, config in enumerate(configs, 1):
+        # Generate run name from config
+        run_name = f"h{config['hidden_dim']}-lr{config['learning_rate']}-bs{config['batch_size']}"
+
         print(f"\n{'=' * 70}")
-        print(f"Experiment {idx}/3: {config['name']}")
+        print(f"Run {idx}/{len(configs)}: {run_name}")
         print(f"{'=' * 70}")
 
         print("\nConfiguration:")
         for key, value in config.items():
-            if key != "name":
-                print(f"  {key}: {value}")
+            print(f"  {key}: {value}")
 
         # =================================================================
         # 3. Initialize Artifacta run
         #    This automatically logs config and environment info
         # =================================================================
-        run = ds.init(
+        run = init(
             project="regression-demo",
-            name=f"tensorflow-regression-{config['name']}",
-            config={k: v for k, v in config.items() if k != "name"},
+            name=run_name,
+            config=config,
         )
-        print("\n✓ Artifacta run initialized")
+        print("\nArtifacta run initialized")
 
         # =================================================================
         # 4. Enable autolog for automatic checkpoint tracking
         #    This will log model checkpoints and metrics automatically
         # =================================================================
-        ds.autolog(framework="tensorflow")
+        autolog(framework="tensorflow")
 
         # =================================================================
         # 5. Generate synthetic regression dataset
@@ -252,7 +251,7 @@ def main():
         # 7. Train the model
         #    Keras automatically tracks metrics during training
         # =================================================================
-        print("\n✓ Training model...")
+        print("\nTraining model...")
         print(f"  Epochs: {config['epochs']}")
         print(f"  Batch size: {config['batch_size']}")
         print("-" * 70)
@@ -266,13 +265,13 @@ def main():
             verbose=1,  # Show progress bar
         )
 
-        print("\n✓ Training complete!")
+        print("\nTraining complete!")
 
         # =================================================================
         # 8. Log training curves as Series
         #    Shows how loss decreases over epochs
         # =================================================================
-        print("\n✓ Logging training metrics...")
+        print("\nLogging training metrics...")
 
         # Extract metrics from training history
         train_loss = history.history["loss"]
@@ -281,9 +280,9 @@ def main():
         val_mae = history.history["val_mae"]
 
         # Log loss curves
-        ds.log(
+        log(
             "loss_curves",
-            ds.Series(
+            Series(
                 index="epoch",
                 fields={
                     "train_loss": train_loss,
@@ -294,9 +293,9 @@ def main():
         )
 
         # Log MAE (Mean Absolute Error) curves
-        ds.log(
+        log(
             "mae_curves",
-            ds.Series(
+            Series(
                 index="epoch",
                 fields={
                     "train_mae": train_mae,
@@ -309,7 +308,7 @@ def main():
         # =================================================================
         # 9. Make predictions on test set
         # =================================================================
-        print("\n✓ Generating predictions...")
+        print("\nGenerating predictions...")
 
         y_pred = model.predict(x_test, verbose=0).flatten()
 
@@ -319,7 +318,7 @@ def main():
         # 10. Log predictions vs actual as Scatter plot
         #     Visualizes model performance - points should fall on diagonal
         # =================================================================
-        print("\n✓ Logging prediction scatter plot...")
+        print("\nLogging prediction scatter plot...")
 
         # Create scatter plot data
         # Each point represents one test sample
@@ -328,9 +327,9 @@ def main():
             for actual, pred in zip(y_test, y_pred)
         ]
 
-        ds.log(
+        log(
             "predictions_vs_actual",
-            ds.Scatter(
+            Scatter(
                 points=scatter_points,
                 x_label="Actual Values",
                 y_label="Predicted Values",
@@ -346,7 +345,7 @@ def main():
         #     Residual = Actual - Predicted
         #     Good model should have residuals centered around 0
         # =================================================================
-        print("\n✓ Analyzing residuals...")
+        print("\nAnalyzing residuals...")
 
         residuals = y_test - y_pred
 
@@ -361,9 +360,9 @@ def main():
         print(f"  Residual range: [{residual_min:.4f}, {residual_max:.4f}]")
 
         # Log residual distribution
-        ds.log(
+        log(
             "residual_distribution",
-            ds.Distribution(
+            Distribution(
                 values=residuals.tolist(),
                 metadata={
                     "description": "Prediction errors (actual - predicted)",
@@ -377,7 +376,7 @@ def main():
         # =================================================================
         # 12. Calculate final metrics
         # =================================================================
-        print("\n✓ Calculating final metrics...")
+        print("\nCalculating final metrics...")
 
         # Mean Squared Error
         mse = np.mean((y_test - y_pred) ** 2)
@@ -397,9 +396,9 @@ def main():
         print(f"  R²:   {r2_score:.4f}")
 
         # Log final metrics as Series (single point)
-        ds.log(
+        log(
             "final_metrics",
-            ds.Series(
+            Series(
                 index="metric",
                 fields={
                     "value": [mse, rmse, mae, r2_score],
@@ -412,7 +411,7 @@ def main():
         # 13. Save and log the trained model
         #     Keras models are saved in .keras format (recommended)
         # =================================================================
-        print("\n✓ Saving model...")
+        print("\nSaving model...")
 
         model_path = "regression_model.keras"
         model.save(model_path)
@@ -446,7 +445,7 @@ def main():
         print("\nInterpretation:")
         print(f"  - R² = {r2_score:.4f} means the model explains {r2_score * 100:.1f}% of variance")
         print(f"  - Average prediction error (MAE): {mae:.4f} standard units")
-        print("\n✓ All metrics and artifacts logged to Artifacta")
+        print("\nAll metrics and artifacts logged to Artifacta")
         print("  View your results in the Artifacta UI!")
         print("=" * 70)
 

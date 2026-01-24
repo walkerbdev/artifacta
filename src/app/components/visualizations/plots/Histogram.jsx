@@ -4,12 +4,42 @@ import { useResponsiveCanvas } from '../../../hooks/useResponsiveCanvas';
 import { getChartColor } from '../../../../core/utils/constants';
 
 /**
- * Histogram Plot
- * Displays distribution of values with optional grouping
+ * Histogram component for distribution visualization
+ *
+ * Renders histograms showing value distributions with configurable binning.
+ * Used for loss distributions, parameter distributions, and data analysis.
+ *
+ * Features:
+ * - Automatic or custom binning
+ * - Multiple distribution overlay (grouped histograms)
+ * - Frequency counts per bin
+ * - HiDPI display support
+ *
+ * Data format:
+ * ```
+ * {
+ *   groups: [
+ *     { label: "Training", bins: [...], counts: [...] },
+ *     { label: "Validation", bins: [...], counts: [...] }
+ *   ]
+ * }
+ * ```
+ *
+ * @param {object} props - Component props
+ * @param {object} props.data - Histogram data with bins and counts
+ * @param {string} [props.title] - Chart title (handled by wrapper)
+ * @param {object} [props.metadata] - Additional metadata
+ * @returns {React.ReactElement} Canvas-based histogram
  */
 const Histogram = ({ data, title: _title, metadata: _metadata }) => {
   const canvasRef = useRef(null);
 
+  /**
+   * Draws the histogram on the canvas
+   * @param {number} width - Canvas width
+   * @param {number} height - Canvas height
+   * @returns {void}
+   */
   const drawHistogram = useCallback((width, height) => {
     if (!data) return;
 
@@ -80,6 +110,16 @@ const Histogram = ({ data, title: _title, metadata: _metadata }) => {
   );
 };
 
+/**
+ * Draws a simple (non-grouped) histogram
+ * @param {object} ctx - Canvas 2D context
+ * @param {number[]} values - Array of numerical values to plot
+ * @param {number} numBins - Number of histogram bins
+ * @param {object} padding - Padding object with top, right, bottom, left properties
+ * @param {number} plotWidth - Width of the plot area
+ * @param {number} plotHeight - Height of the plot area
+ * @returns {void}
+ */
 function drawSimpleHistogram(ctx, values, numBins, padding, plotWidth, plotHeight) {
   // Compute bins
   const min = Math.min(...values);
@@ -137,6 +177,17 @@ function drawSimpleHistogram(ctx, values, numBins, padding, plotWidth, plotHeigh
   ctx.restore();
 }
 
+/**
+ * Draws a grouped histogram with multiple series
+ * @param {object} ctx - Canvas 2D context
+ * @param {number[]} values - Array of numerical values to plot
+ * @param {string[]} groups - Array of group labels corresponding to each value
+ * @param {number} numBins - Number of histogram bins
+ * @param {object} padding - Padding object with top, right, bottom, left properties
+ * @param {number} plotWidth - Width of the plot area
+ * @param {number} plotHeight - Height of the plot area
+ * @returns {void}
+ */
 function drawGroupedHistogram(ctx, values, groups, numBins, padding, plotWidth, plotHeight) {
   // Group values
   const groupedValues = {};

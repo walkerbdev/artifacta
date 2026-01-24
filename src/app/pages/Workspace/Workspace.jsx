@@ -17,6 +17,11 @@ import { ProjectNotesTab } from '@/app/components/ProjectNotesTab/ProjectNotesTa
 import { ProjectsPanel } from '@/app/components/ProjectsPanel/ProjectsPanel';
 import { ArtifactsPanel } from '@/app/components/ArtifactsPanel';
 
+/**
+ * Main Workspace component - central hub for experiment visualization and analysis
+ * Manages run selection, tabbed interface, and sidebar navigation
+ * @returns {React.ReactElement} The workspace component
+ */
 const Workspace = () => {
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

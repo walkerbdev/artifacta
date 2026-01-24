@@ -1,17 +1,61 @@
 /**
  * Sweep Detection Utilities
  *
- * Detects valid hyperparameter sweeps across runs for comparison visualization.
- * A valid sweep has:
- * 1. All runs share the same config keys
- * 2. Exactly ONE parameter varies across runs
- * 3. All other parameters are constant
+ * Detects valid hyperparameter sweeps across experiment runs for comparison visualization.
+ *
+ * A sweep is a set of runs where hyperparameters are systematically varied to understand
+ * their effect on metrics. This module validates sweep structure and extracts metadata
+ * needed for sweep visualization (parallel coordinates, scatter plots, correlation analysis).
+ *
+ * Validation criteria:
+ * 1. All runs must have a config object
+ * 2. All runs share the same config keys (consistent structure)
+ * 3. At least one parameter varies across runs
+ * 4. At least 2 runs (need comparison)
+ *
+ * The module also extracts final metrics from each run's structured_data for comparison.
  */
 
 /**
  * Detect if selected runs form a valid hyperparameter sweep
- * @param {Array} runs - Array of run objects with config
- * @returns {Object|null} - Sweep info or null if invalid
+ *
+ * Algorithm:
+ * 1. Filter runs that have non-empty config
+ * 2. Verify all runs have identical config key structure
+ * 3. For each config key, check if values vary across runs
+ * 4. Classify parameters as varying (different values) or constant (same value)
+ * 5. Extract final metric values from each run's structured_data
+ * 6. Return sweep metadata including varying params, metrics, and transformed runs
+ *
+ * A sweep is valid if:
+ * - At least 2 runs with config
+ * - All configs have same keys
+ * - At least 1 parameter varies
+ *
+ * @param {Array<object>} runs - Array of run objects, each with:
+ *   - run_id: unique identifier
+ *   - name: run name
+ *   - config: object with hyperparameters
+ *   - structured_data: logged metrics/plots
+ * @returns {object|null} Sweep detection result:
+ *   - If valid: { valid: true, varyingParams, constantParams, runs, availableMetrics, ... }
+ *   - If invalid: { valid: false, reason, message }
+ *   - If insufficient runs: null
+ *
+ * @example
+ * const runs = [
+ *   { config: { lr: 0.01, batch: 32 }, structured_data: {...} },
+ *   { config: { lr: 0.1,  batch: 32 }, structured_data: {...} },
+ *   { config: { lr: 1.0,  batch: 32 }, structured_data: {...} }
+ * ];
+ * const sweep = detectSweep(runs);
+ * // Returns: {
+ * //   valid: true,
+ * //   varyingParams: [{ name: 'lr', values: [0.01, 0.1, 1.0], isNumeric: true }],
+ * //   constantParams: [{ name: 'batch', value: 32 }],
+ * //   runs: [...],  // enriched with metrics
+ * //   availableMetrics: ['loss', 'accuracy']
+ * // }
  */
 export function detectSweep(runs) {
   if (!runs || runs.length < 2) {
@@ -103,9 +147,19 @@ export function detectSweep(runs) {
 }
 
 /**
- * Extract final metrics from a run's structured_data
- * @param {Object} run - Run object
- * @returns {Object} - Map of metric name to final value
+ * Extract final metric values from a run's structured_data
+ *
+ * Searches through all structured data entries (Series, Curve primitives) and extracts
+ * the final/summary value for each metric. This is used to create a single metric
+ * value per run for sweep comparison.
+ *
+ * Extraction logic:
+ * - Series primitives: Takes the LAST value from each field array (final epoch value)
+ * - Curve primitives: Extracts the summary metric (e.g., AUC from ROC curve)
+ *
+ * @param {object} run - Run object with structured_data property
+ * @returns {object} Map of metric names to final numeric values
+ *   Example: { loss: 0.23, accuracy: 0.95, auc: 0.88 }
  */
 function extractFinalMetrics(run) {
   const metrics = {};
@@ -140,10 +194,25 @@ function extractFinalMetrics(run) {
 }
 
 /**
- * Extract all available metrics across runs
- * Only includes metrics that have valid numeric values in at least one run
- * @param {Array} runs - Runs with extracted metrics
- * @returns {Array} - Array of unique metric names
+ * Extract all available metric names across multiple runs
+ *
+ * Collects the union of all metric names that have valid numeric values in at least
+ * one run. Filters out null, undefined, NaN, and non-numeric values.
+ *
+ * This is used to populate metric selector dropdowns in sweep visualizations, ensuring
+ * users only see metrics that actually have data.
+ *
+ * @param {Array<object>} runs - Runs with extracted metrics (output from extractFinalMetrics)
+ *   Each run should have shape: { metrics: { metricName: numericValue, ... } }
+ * @returns {Array<string>} Sorted array of unique metric names that have valid numeric data
+ *
+ * @example
+ * const runs = [
+ *   { metrics: { loss: 0.5, accuracy: 0.9 } },
+ *   { metrics: { loss: 0.3, f1: 0.85 } }
+ * ];
+ * extractAvailableMetrics(runs);
+ * // Returns: ['accuracy', 'f1', 'loss']  (sorted alphabetically)
  */
 function extractAvailableMetrics(runs) {
   const allMetrics = new Set();

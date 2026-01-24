@@ -27,6 +27,13 @@ import { apiClient } from '@/core/api/ApiClient';
 import { FileAttachment } from './FileAttachmentExtension';
 import './ProjectNotesTab.scss';
 
+/**
+ * Renders the editor toolbar with formatting and editing options
+ * @param {object} props - Component props
+ * @param {object} props.editor - TipTap editor instance
+ * @param {(file: File) => void} props.onFileUpload - Callback function to handle file uploads
+ * @returns {object|null} The menu bar component or null if editor is not available
+ */
 const MenuBar = ({ editor, onFileUpload }) => {
   const [showTableMenu, setShowTableMenu] = React.useState(false);
   const [showHeadingMenu, setShowHeadingMenu] = React.useState(false);
@@ -36,6 +43,11 @@ const MenuBar = ({ editor, onFileUpload }) => {
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
+    /**
+     * Handles clicks outside dropdown menus to close them
+     * @param {Event} event - The mouse event
+     * @returns {void}
+     */
     const handleClickOutside = (event) => {
       if (tableMenuRef.current && !tableMenuRef.current.contains(event.target)) {
         setShowTableMenu(false);
@@ -58,6 +70,15 @@ const MenuBar = ({ editor, onFileUpload }) => {
     return null;
   }
 
+  /**
+   * Renders a toolbar button with active state styling
+   * @param {object} props - Component props
+   * @param {() => void} props.onClick - Click handler function
+   * @param {boolean} props.isActive - Whether the button is in active state
+   * @param {object} props.children - Button content
+   * @param {string} props.title - Tooltip text for the button
+   * @returns {object} The toolbar button component
+   */
   const ToolbarButton = ({ onClick, isActive, children, title }) => (
     <button
       onClick={onClick}
@@ -69,6 +90,10 @@ const MenuBar = ({ editor, onFileUpload }) => {
     </button>
   );
 
+  /**
+   * Returns the current heading level label based on editor state
+   * @returns {string} The heading level label (H1-H6) or 'H' if no heading is active
+   */
   const getHeadingLabel = () => {
     if (editor.isActive('heading', { level: 1 })) return 'H1';
     if (editor.isActive('heading', { level: 2 })) return 'H2';
@@ -395,6 +420,41 @@ const MenuBar = ({ editor, onFileUpload }) => {
   );
 };
 
+/**
+ * Project Notes Tab component for rich-text note taking with TipTap editor
+ *
+ * Full-featured markdown editor for documenting experiments, hypotheses, and findings.
+ * Supports images, tables, math equations, code blocks, file attachments, and more.
+ *
+ * Features:
+ * - Rich text editing (bold, italic, headings, lists, quotes)
+ * - Code blocks with syntax highlighting
+ * - LaTeX math equations (inline and block)
+ * - Tables with row/column manipulation
+ * - Task lists with checkboxes
+ * - Image uploads and embedding
+ * - File attachments (links to any file)
+ * - Markdown export
+ * - Autosave (debounced)
+ * - Note list sidebar
+ * - Search/filter notes
+ * - Delete notes
+ *
+ * TipTap extensions used:
+ * - StarterKit (basic formatting)
+ * - Image, Link, Table
+ * - TaskList, TaskItem
+ * - MathExtension (KaTeX)
+ * - Custom FileAttachment extension
+ *
+ * @param {object} props - Component props
+ * @param {string} props.projectId - Current project ID
+ * @param {Array<object>} [props.availableRuns] - Runs in project (unused currently)
+ * @param {string|null} [props.externalNoteId] - Note ID to load (from sidebar navigation)
+ * @param {string|null} [props.externalProjectId] - Project ID to load (from sidebar navigation)
+ * @param {boolean} [props.isCreatingNew=false] - Auto-start creating new note
+ * @returns {React.ReactElement} TipTap editor with note list sidebar
+ */
 export const ProjectNotesTab = ({
   projectId,
   availableRuns: _availableRuns = [],
@@ -462,6 +522,12 @@ export const ProjectNotesTab = ({
   }, [isCreatingNew, externalProjectId]);
 
 
+  /**
+   * Loads a note from the API and populates the editor with its content and attachments
+   * @param {string} activeProjectId - The ID of the project containing the note
+   * @param {string} noteId - The ID of the note to load
+   * @returns {Promise<void>}
+   */
   const loadNote = async (activeProjectId, noteId) => {
     try {
       const note = await apiClient.getProjectNote(activeProjectId, noteId);
@@ -550,6 +616,10 @@ export const ProjectNotesTab = ({
     }
   };
 
+  /**
+   * Creates a new project note with the current title and editor content
+   * @returns {Promise<void>}
+   */
   const createNote = async () => {
     try {
       const activeProjectId = externalProjectId || projectId;
@@ -569,6 +639,10 @@ export const ProjectNotesTab = ({
     }
   };
 
+  /**
+   * Updates the currently selected note with the current title and editor content
+   * @returns {Promise<void>}
+   */
   const updateNote = async () => {
     try {
       const activeProjectId = externalProjectId || projectId;
@@ -584,6 +658,11 @@ export const ProjectNotesTab = ({
     }
   };
 
+  /**
+   * Deletes a note after user confirmation
+   * @param {string} noteId - The ID of the note to delete
+   * @returns {Promise<void>}
+   */
   const deleteNote = async (noteId) => {
     // eslint-disable-next-line no-undef
     if (!confirm('Delete this note? This cannot be undone.')) return;
@@ -604,6 +683,10 @@ export const ProjectNotesTab = ({
     }
   };
 
+  /**
+   * Resets the form by clearing the title and editor content
+   * @returns {void}
+   */
   const resetForm = () => {
     setTitle('');
     if (editor) {
@@ -612,6 +695,11 @@ export const ProjectNotesTab = ({
   };
 
   // Helper: Detect language from file extension
+  /**
+   * Detects the programming language based on file extension
+   * @param {string} filename - The filename to analyze
+   * @returns {string} The detected language identifier or 'text' as fallback
+   */
   const getLanguageFromFilename = (filename) => {
     const ext = filename.split('.').pop()?.toLowerCase();
     const langMap = {
@@ -627,6 +715,11 @@ export const ProjectNotesTab = ({
   };
 
   // Helper: Check if file is a text/code file
+  /**
+   * Determines if a file is a text or code file based on MIME type and extension
+   * @param {File} file - The file object to check
+   * @returns {boolean} True if the file is a text/code file, false otherwise
+   */
   const isTextFile = (file) => {
     const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
     const textExtensions = ['.py', '.js', '.jsx', '.ts', '.tsx', '.java', '.cpp', '.c', '.rb', '.go', '.rs', '.php', '.swift', '.kt', '.sql', '.sh', '.bash', '.json', '.xml', '.yaml', '.yml', '.md', '.html', '.css', '.scss', '.txt', '.log'];
@@ -635,6 +728,11 @@ export const ProjectNotesTab = ({
            textExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
   };
 
+  /**
+   * Handles file uploads by processing and inserting them into the editor
+   * @param {File} file - The file to upload and insert
+   * @returns {Promise<void>}
+   */
   const handleFileUpload = async (file) => {
     try {
       const isImage = file.type.startsWith('image/');
@@ -651,6 +749,10 @@ export const ProjectNotesTab = ({
         if (isText) {
           // Text/code files: Read as text for syntax highlighting
           const textReader = new FileReader();
+          /**
+           * Handles successful text file reading and inserts content into editor
+           * @returns {void}
+           */
           textReader.onload = () => {
             const textContent = textReader.result;
             const language = getLanguageFromFilename(file.name);
@@ -674,6 +776,10 @@ export const ProjectNotesTab = ({
         } else {
           // Binary files (images, PDFs, videos, audio): Read as data URL
           const reader = new FileReader();
+          /**
+           * Handles successful binary file reading and inserts content into editor
+           * @returns {void}
+           */
           reader.onload = () => {
             const dataUrl = reader.result;
 

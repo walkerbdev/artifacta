@@ -3,6 +3,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HiDotsVertical } from 'react-icons/hi';
 import './ComponentSettingsMenu.scss';
 
+/**
+ * Component Settings Menu for customizing visualization labels
+ *
+ * Dropdown menu (gear icon) that allows users to edit plot titles and axis labels
+ * in real-time. Integrated into DraggableVisualization header.
+ *
+ * Features:
+ * - Inline editing (click to edit fields)
+ * - Real-time updates (changes apply immediately)
+ * - Animated dropdown (Framer Motion)
+ * - Auto-detects available fields (title, X/Y axis labels)
+ * - Only shows relevant fields for each visualization
+ *
+ * @param {object} props - Component props
+ * @param {string} props.visualizationKey - Unique ID of visualization being customized
+ * @param {object} [props.currentLabels={}] - Current label values:
+ *   - title: string (optional)
+ *   - xAxisLabel: string (optional)
+ *   - yAxisLabel: string (optional)
+ * @param {function} props.onUpdateLabels - Callback to save label changes
+ *   Signature: (visualizationKey: string, fieldKey: string, value: string) => void
+ * @returns {React.ReactElement|null} Settings dropdown or null if no editable fields
+ */
 export function ComponentSettingsMenu({
   visualizationKey,
   currentLabels = {},
@@ -22,11 +45,22 @@ export function ComponentSettingsMenu({
   // Only show fields that exist in the initial currentLabels object
   const fields = allFields.filter(field => field.key in currentLabels);
 
+  /**
+   * Handles entering edit mode for a specific field
+   * @param {string} fieldKey - The key of the field being edited
+   * @param {string} currentValue - The current value of the field
+   * @returns {void}
+   */
   const handleEdit = (fieldKey, currentValue) => {
     setEditingField(fieldKey);
     setTempValue(currentValue || '');
   };
 
+  /**
+   * Handles changes to the input field and updates labels in real-time
+   * @param {object} e - The change event from the input
+   * @returns {void}
+   */
   const handleChange = (e) => {
     const newValue = e.target.value;
     setTempValue(newValue);
@@ -36,11 +70,20 @@ export function ComponentSettingsMenu({
     }
   };
 
+  /**
+   * Handles exiting edit mode when the input loses focus
+   * @returns {void}
+   */
   const handleBlur = () => {
     setEditingField(null);
     setTempValue('');
   };
 
+  /**
+   * Handles keyboard events to exit edit mode on Enter or Escape
+   * @param {object} e - The keyboard event
+   * @returns {void}
+   */
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === 'Escape') {
       e.target.blur(); // Exit edit mode

@@ -1,14 +1,36 @@
-"""Data primitives for structured logging.
+"""Data primitives for structured logging and visualization.
 
-Universal data schema that supports any domain:
-- ML training
-- A/B testing
-- Physics simulations
-- Financial data
-- Genomics
-- Analytics
-- Robotics
-- And more...
+This module provides a universal data schema that supports any domain through
+a small set of well-designed primitives. Instead of creating domain-specific
+data structures, these primitives can represent data from ML training, A/B testing,
+physics simulations, financial analysis, genomics, analytics, robotics, and more.
+
+Architecture:
+    The primitives form a type hierarchy optimized for common visualization patterns:
+
+    - Series: Ordered data over a single dimension (time, epochs, steps)
+    - Distribution: Value collections with optional grouping (A/B test results)
+    - Matrix: 2D relationships (confusion matrices, correlation matrices)
+    - Table: Generic tabular data (event logs, measurements)
+    - Curve: Pure X-Y relationships (ROC curves, dose-response)
+    - Scatter: Unordered point clouds (embeddings, particle positions)
+    - BarChart: Categorical comparisons (model performance, metrics by group)
+
+Design Philosophy:
+    1. Domain-agnostic: Same primitives work for any field
+    2. Auto-conversion: Plain Python types (dict, list, numpy arrays) are
+       automatically converted to the appropriate primitive via auto_convert()
+    3. Serializable: All primitives have to_dict() for JSON serialization
+    4. Type-safe: Dataclasses provide structure and validation
+    5. Extensible: Metadata fields allow domain-specific annotations
+
+Conversion Strategy:
+    The auto_convert() function implements intelligent type detection:
+    - numpy arrays: 1D -> Distribution, 2D -> Matrix
+    - dict: -> Series (with index detection)
+    - list: 1D -> Distribution, 2D -> Matrix
+
+This allows users to just log their data naturally without thinking about types.
 """
 
 from dataclasses import dataclass
@@ -43,7 +65,20 @@ class Series:
     metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self):
-        """Convert to dictionary."""
+        """Convert to dictionary for JSON serialization.
+
+        Conversion algorithm:
+            1. Convert field values from numpy arrays to lists for JSON compatibility
+            2. Optionally include explicit index_values if provided (supports categorical indices)
+            3. Include metadata if present
+            4. Return minimal dictionary (only required + populated optional fields)
+
+        The conversion handles numpy arrays gracefully by detecting isinstance() and
+        converting to native Python lists, which are JSON-serializable.
+
+        Returns:
+            Dict with 'index', 'fields', and optionally 'index_values' and 'metadata'
+        """
         d = {
             "index": self.index,
             "fields": {
@@ -310,26 +345,64 @@ PRIMITIVE_TYPES = {
 def auto_convert(data):
     """Auto-detect and convert plain Python types to primitives.
 
-    Makes it easy for users - they just log dicts/lists/arrays and we handle conversion.
+    This function makes the API user-friendly by accepting plain Python types (dict, list,
+    numpy arrays) and intelligently converting them to the appropriate primitive type.
+    Users can just log their data naturally without thinking about type conversions.
+
+    Detection Algorithm:
+        The function uses a multi-stage detection strategy:
+
+        1. **Early exit**: If data is already a primitive, return as-is (no conversion overhead)
+
+        2. **NumPy array detection**:
+           - 1D arrays (shape: [n]) -> Distribution (values only, no ordering implied)
+           - 2D arrays (shape: [m, n]) -> Matrix (rows x columns structure)
+           - 3D+ arrays -> ValueError (not supported, too high-dimensional for visualization)
+
+        3. **Dict detection** (most complex case, optimized for metrics logging):
+           a. Scan for index field candidates in priority order:
+              - Explicit: "x", "epoch", "step", "time", "iteration"
+              - These names signal ordered/sequential data
+           b. Extract index_values from the index field
+           c. Remaining list/array fields become Series fields
+           d. If no index found, use first field as index (fallback)
+           e. If no fields at all, use default "index" name
+           f. Return Series with detected index and fields
+
+        4. **List/tuple detection**:
+           - Empty list -> Distribution (empty values)
+           - Nested lists [[...], [...]] -> Matrix (2D structure detected)
+           - Flat list [1, 2, 3] -> Distribution (1D values)
+
+        5. **Fallback**: Wrap scalar/unknown types in single-element Distribution
+
+    Why this algorithm:
+        - Dict -> Series: Most common ML/analytics use case (metrics over epochs/steps)
+        - 1D data -> Distribution: Natural for value collections without ordering
+        - 2D data -> Matrix: Natural for heatmaps, confusion matrices, correlations
+        - Index detection: Prioritizes common names to infer sequential data automatically
 
     Examples:
         # Series from dict with multiple fields
-        {"epoch": [1,2,3], "loss": [0.5,0.3,0.2]} -> Series
+        {"epoch": [1,2,3], "loss": [0.5,0.3,0.2]} -> Series(index="epoch", fields={"loss": [...]})
 
         # Series from dict with x/y
-        {"x": [1,2,3], "y": [0.5,0.3,0.2]} -> Series
+        {"x": [1,2,3], "y": [0.5,0.3,0.2]} -> Series(index="x", fields={"y": [...]})
 
         # Distribution from 1D array/list
-        [0.1, 0.2, 0.15, ...] -> Distribution
+        [0.1, 0.2, 0.15] -> Distribution(values=[0.1, 0.2, 0.15])
 
         # Matrix from 2D array/list
-        [[1,2], [3,4]] -> Matrix
+        [[1,2], [3,4]] -> Matrix(data=[[1,2], [3,4]])
 
     Args:
-        data: Plain Python dict, list, or numpy array
+        data: Plain Python dict, list, tuple, or numpy array to convert
 
     Returns:
         One of the primitive types (Series, Distribution, Matrix, etc.)
+
+    Raises:
+        ValueError: If data is a 3D+ numpy array (not supported)
     """
     # Already a primitive? Return as-is
     if type(data) in PRIMITIVE_TYPES:

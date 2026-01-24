@@ -1,4 +1,25 @@
-"""PyTorch model metadata extractor."""
+"""PyTorch model metadata extractor for checkpoint files.
+
+Automatically extracts metadata from PyTorch model checkpoints (.pt, .pth, .ckpt)
+to provide insights into model architecture, training progress, and hyperparameters.
+
+Supported checkpoint formats:
+- PyTorch Lightning: {"state_dict": {...}, "epoch": N, "hyper_parameters": {...}}
+- Standard PyTorch: {"model_state_dict": {...}, "epoch": N, "loss": X}
+- Raw state_dict: OrderedDict of layer tensors
+
+Extraction strategy:
+1. Load checkpoint with torch.load (CPU, no weights_only for compatibility)
+2. Detect checkpoint format by inspecting dict keys
+3. Extract training metadata (epoch, loss, hyperparameters)
+4. Analyze state_dict for parameter count and layer names
+5. Return structured metadata dict
+
+Performance:
+- Loads on CPU to avoid GPU memory usage
+- Works even if training was done on CUDA
+- Handles large checkpoints efficiently
+"""
 
 import os
 
@@ -6,11 +27,47 @@ import os
 def extract_pytorch_metadata(filepath: str) -> dict:
     """Extract metadata from PyTorch checkpoint file (.pt, .pth, .ckpt).
 
+    Detection algorithm:
+    1. Check if PyTorch is installed (graceful failure if not)
+    2. Load checkpoint with map_location="cpu" to avoid GPU dependency
+    3. Inspect checkpoint structure to determine format:
+       - Has "state_dict" key? → PyTorch Lightning format
+       - Has "model_state_dict" key? → Standard PyTorch format
+       - Has tensor values? → Raw state_dict
+    4. Extract training metadata if available (epoch, loss, hyperparameters)
+    5. Analyze state_dict for model architecture:
+       - Count total parameters (sum of tensor.numel() across all layers)
+       - Extract unique layer names (remove .weight/.bias suffixes)
+       - Sample first 10 layer names for inspection
+
+    Why map_location="cpu":
+    - Avoids CUDA out of memory errors when extracting metadata
+    - Works even if checkpoint was saved on GPU
+    - Metadata extraction doesn't need GPU compute
+
+    Why weights_only=False:
+    - Some checkpoints contain non-tensor objects (hyperparameters, optimizers)
+    - We need full checkpoint structure for metadata extraction
+    - Security is less of a concern for user's own checkpoints
+
     Args:
         filepath: Path to PyTorch checkpoint file
 
     Returns:
-        dict with extracted metadata (parameter count, file size, layers, etc.)
+        dict with extracted metadata:
+        - file_size_bytes: Size of checkpoint file
+        - total_parameters: Total number of model parameters
+        - num_layers: Number of unique layers
+        - layer_names_sample: First 10 layer names
+        - saved_epoch: Training epoch when checkpoint was saved (if available)
+        - saved_global_step: Global training step (PyTorch Lightning)
+        - saved_loss: Training loss at checkpoint (if available)
+        - saved_hyperparameters: Model hyperparameters (PyTorch Lightning)
+
+    Returns empty dict if:
+    - PyTorch is not installed
+    - File doesn't exist
+    - Checkpoint can't be loaded (corrupted, incompatible format)
     """
     try:
         import torch
@@ -80,7 +137,35 @@ def extract_pytorch_metadata(filepath: str) -> dict:
 
 
 def _extract_from_state_dict(state_dict: dict) -> dict:
-    """Extract metadata from PyTorch state_dict."""
+    """Extract metadata from PyTorch state_dict.
+
+    Algorithm:
+    1. Iterate through all entries in state_dict
+    2. For each tensor parameter:
+       - Count parameters using tensor.numel() (number of elements)
+       - Extract layer name by removing suffix (.weight, .bias, etc.)
+       - Track unique layer names (avoid duplicates)
+    3. Return parameter count, layer count, and sample names
+
+    Why remove suffixes:
+    - A single layer has multiple entries (weight, bias, running_mean, etc.)
+    - We want to count unique layers, not unique parameters
+    - Example: "conv1.weight" and "conv1.bias" → one layer "conv1"
+
+    Why limit to 10 layer names:
+    - Prevents overwhelming metadata for large models
+    - Provides enough info for inspection without bloat
+    - Full layer list can be extracted from checkpoint if needed
+
+    Args:
+        state_dict: PyTorch state_dict (dict mapping param names to tensors)
+
+    Returns:
+        dict with:
+        - total_parameters: Total parameter count across all layers
+        - num_layers: Number of unique layers
+        - layer_names_sample: First 10 unique layer names
+    """
     total_params = 0
     layer_names = []
 

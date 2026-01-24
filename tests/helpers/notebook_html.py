@@ -378,7 +378,7 @@ def create_computer_vision_notebook(
             pdf_content = create_test_pdf_report("ResNet-50 Training Report")
             upload_attachment(note_id, "training_report.pdf", pdf_content, api_url)
         except Exception as e:
-            print(f"⚠️  Failed to generate PDF: {e}")
+            print(f"Failed to generate PDF: {e}")
 
     # Add audio file (only if note_id was successfully created)
     if note_id:
@@ -392,7 +392,7 @@ def create_computer_vision_notebook(
                 audio_content = f.read()
             upload_attachment(note_id, "training_complete.wav", audio_content, api_url)
         except Exception as e:
-            print(f"⚠️  Failed to generate audio: {e}")
+            print(f"Failed to generate audio: {e}")
 
     # Add video file (only if note_id was successfully created)
     if note_id:
@@ -406,7 +406,7 @@ def create_computer_vision_notebook(
                 video_content = f.read()
             upload_attachment(note_id, "training_animation.mp4", video_content, api_url)
         except Exception as e:
-            print(f"⚠️  Failed to generate video: {e}")
+            print(f"Failed to generate video: {e}")
 
     return note_id
 

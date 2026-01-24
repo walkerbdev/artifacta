@@ -69,11 +69,11 @@ def test_checkpoint_autolog_e2e():
         # The callback should have logged 2 checkpoints (one per epoch)
         ds_callback = None
         for cb in trainer.callbacks:
-            if type(cb).__name__ == "ArtifactaCheckpointCallback":
+            if type(cb).__name__ == "ArtifactaAutologCallback":
                 ds_callback = cb
                 break
 
-        assert ds_callback is not None, "ArtifactaCheckpointCallback not found"
+        assert ds_callback is not None, "ArtifactaAutologCallback not found"
         assert len(ds_callback.checkpoints_logged) == 2, (
             f"Expected 2 checkpoints logged, got {len(ds_callback.checkpoints_logged)}"
         )
@@ -142,11 +142,11 @@ def test_checkpoint_autolog_best_only():
         # Verify only best checkpoints were logged
         ds_callback = None
         for cb in trainer.callbacks:
-            if type(cb).__name__ == "ArtifactaCheckpointCallback":
+            if type(cb).__name__ == "ArtifactaAutologCallback":
                 ds_callback = cb
                 break
 
-        assert ds_callback is not None, "ArtifactaCheckpointCallback not found"
+        assert ds_callback is not None, "ArtifactaAutologCallback not found"
         # With save_best_only, should log fewer than total epochs (unless loss perfectly decreases)
         # At minimum, should log at least 1 checkpoint (first epoch)
         assert len(ds_callback.checkpoints_logged) >= 1, (

@@ -5,6 +5,39 @@ import rehypeHighlight from 'rehype-highlight';
 import './ChatTab.scss';
 import { apiClient } from '@/core/api/ApiClient';
 
+/**
+ * Chat Tab component for LLM-powered experiment analysis
+ *
+ * Interactive chat interface for asking questions about experiment runs using LLMs.
+ * Automatically loads selected runs' data (config, metrics, artifacts) into LLM context.
+ *
+ * Features:
+ * - LiteLLM integration (supports OpenAI, Anthropic, and other providers)
+ * - Streaming responses with markdown rendering
+ * - Code syntax highlighting
+ * - Auto-loads run data into context
+ * - Persistent API key storage (localStorage)
+ * - Resizable input area
+ * - Auto-scroll to latest messages
+ * - Multi-run context support
+ *
+ * Use cases:
+ * - "Why did loss spike at epoch 10?"
+ * - "Compare these two runs' hyperparameters"
+ * - "Which run had best validation accuracy?"
+ * - "Explain the difference in convergence patterns"
+ *
+ * Architecture:
+ * - Fetches full run data on selectedRunIds change
+ * - Sends run data + chat history to OpenAI
+ * - Streams response chunks for real-time display
+ * - Renders markdown with code highlighting
+ *
+ * @param {object} props - Component props
+ * @param {Array<string>} props.selectedRunIds - Run IDs to include in chat context
+ * @param {Array<object>} props.allRuns - All runs (unused, for interface consistency)
+ * @returns {React.ReactElement|null} Chat interface or setup prompt
+ */
 export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
   const [runData, setRunData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +65,10 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
   }, []);
 
   // Detect if user manually scrolls
+  /**
+   * Handles scroll events to detect if user has manually scrolled away from bottom
+   * @returns {void}
+   */
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
 
@@ -53,6 +90,11 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
   useEffect(() => {
     if (!isResizing) return;
 
+    /**
+     * Handles mouse movement during input area resize
+     * @param {React.MouseEvent} e - Mouse event
+     * @returns {void}
+     */
     const handleMouseMove = (e) => {
       e.preventDefault();
       const containerHeight = window.innerHeight;
@@ -61,6 +103,10 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
       setInputHeight(Math.max(50, newHeight));
     };
 
+    /**
+     * Handles mouse up event to stop resizing
+     * @returns {void}
+     */
     const handleMouseUp = () => {
       setIsResizing(false);
       document.body.classList.remove('resizing-chat');
@@ -85,6 +131,10 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
       return;
     }
 
+    /**
+     * Fetches run data and artifacts for selected run IDs
+     * @returns {Promise<void>}
+     */
     const fetchRunData = async () => {
       setLoading(true);
       try {
@@ -205,6 +255,10 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
     return context;
   }, [runData]);
 
+  /**
+   * Handles sending a message to the LLM and streaming the response
+   * @returns {Promise<void>}
+   */
   const handleSendMessage = async () => {
     if (!input.trim() || streaming) return;
 
@@ -316,6 +370,12 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
     }
   };
 
+  /**
+   * Saves LLM settings to localStorage and updates state
+   * @param {string} newModel - The LLM model to use
+   * @param {string} newApiKey - The API key for the LLM provider
+   * @returns {void}
+   */
   const handleSaveSettings = (newModel, newApiKey) => {
     localStorage.setItem('llm_model', newModel);
     localStorage.setItem('llm_api_key', newApiKey);
@@ -324,6 +384,10 @@ export const ChatTab = ({ selectedRunIds, allRuns: _allRuns }) => {
     setShowSetup(false);
   };
 
+  /**
+   * Opens the settings modal to change LLM configuration
+   * @returns {void}
+   */
   const handleChangeSettings = () => {
     setShowSetup(true);
   };

@@ -63,3 +63,8 @@ logs/
 docs/_build/
 docs/_static/
 docs/_templates/
+
+# Playwright test outputs
+test-results/
+playwright-report/
+playwright/.cache/

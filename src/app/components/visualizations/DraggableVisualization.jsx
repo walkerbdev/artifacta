@@ -3,9 +3,45 @@ import { motion } from 'framer-motion';
 import './DraggableVisualization.scss';
 
 /**
- * Transform-based draggable visualization wrapper
- * Uses CSS transforms for dragging - NO absolute positioning mode
- * Elements always stay in flexbox flow
+ * Draggable visualization wrapper using transform-based drag system
+ *
+ * Wraps plot components to make them draggable and resizable while staying in flexbox flow.
+ * Uses CSS transforms for smooth 60fps dragging without layout recalculation.
+ *
+ * Architecture:
+ * - Components remain in normal document flow (NOT position: absolute)
+ * - During drag: Apply CSS transform for visual feedback (GPU-accelerated)
+ * - After drag: Clear transform, optionally reorder DOM
+ * - Resize: Uses Framer Motion drag handles
+ *
+ * Features:
+ * - Smooth dragging with transform-based animation
+ * - Resize handles (corners and edges)
+ * - Close button for removing visualizations
+ * - Header with title
+ * - Automatic z-index management (dragged element on top)
+ * - Integration with layout manager
+ *
+ * Why transforms instead of absolute positioning:
+ * - No layout thrashing (no offsetTop/offsetLeft calculations)
+ * - GPU-accelerated (compositing layer)
+ * - Maintains flexbox benefits (responsive, auto-sizing)
+ * - Easier to revert (just remove transform)
+ *
+ * @param {object} props - Component props
+ * @param {string} props.visualizationKey - Unique identifier for this visualization
+ * @param {string} props.title - Display title in header
+ * @param {function} props.onClose - Callback when close button clicked
+ * @param {function} props.onDragStart - Callback when drag begins (key)
+ * @param {function} props.onDrag - Callback during drag (key, deltaX, deltaY)
+ * @param {function} props.onDragEnd - Callback when drag ends (key)
+ * @param {function} props.onResize - Callback when resized (key, width, height)
+ * @param {object} [props.dragTransform] - CSS transform to apply: { x, y }
+ * @param {boolean} [props.isDragging] - Whether currently being dragged
+ * @param {function} props.registerElement - Register with layout manager (key, element, type)
+ * @param {string} props.chartType - Type of chart for registration
+ * @param {React.ReactNode} props.children - Plot component to wrap
+ * @returns {React.ReactElement} Draggable visualization wrapper
  */
 export function DraggableVisualization({
   visualizationKey,
@@ -36,12 +72,22 @@ export function DraggableVisualization({
     }
   }, [registerElement, visualizationKey, chartType]);
 
+  /**
+   * Handles the start of a drag operation
+   * @returns {void}
+   */
   const handleDragStart = () => {
     if (onDragStart) {
       onDragStart(visualizationKey);
     }
   };
 
+  /**
+   * Handles drag movement
+   * @param {object} _event - The drag event (unused)
+   * @param {object} info - Information about the drag state
+   * @returns {void}
+   */
   const handleDrag = (_event, info) => {
     if (onDrag) {
       // Pass delta from start of drag
@@ -49,6 +95,10 @@ export function DraggableVisualization({
     }
   };
 
+  /**
+   * Handles the end of a drag operation
+   * @returns {void}
+   */
   const handleDragEnd = () => {
     if (onDragEnd) {
       onDragEnd(visualizationKey);
@@ -56,6 +106,11 @@ export function DraggableVisualization({
   };
 
   // Edge detection for resize
+  /**
+   * Detects which edge of the element the mouse is near
+   * @param {object} e - The mouse event
+   * @returns {string|null} The edge identifier (n, s, e, w, ne, nw, se, sw) or null
+   */
   const getEdgeFromMouse = (e) => {
     if (!elementRef.current) return null;
 
@@ -79,6 +134,11 @@ export function DraggableVisualization({
     return null;
   };
 
+  /**
+   * Gets the appropriate cursor style for a given edge
+   * @param {string} edge - The edge identifier
+   * @returns {string} The CSS cursor value
+   */
   const getCursorForEdge = (edge) => {
     const cursors = {
       n: 'ns-resize',
@@ -93,6 +153,11 @@ export function DraggableVisualization({
     return cursors[edge] || 'default';
   };
 
+  /**
+   * Handles mouse movement to update cursor style based on edge proximity
+   * @param {object} e - The mouse event
+   * @returns {void}
+   */
   const handleMouseMove = (e) => {
     if (isResizing || isDragging) return;
 
@@ -100,6 +165,11 @@ export function DraggableVisualization({
     setCursorStyle(edge ? getCursorForEdge(edge) : 'grab');
   };
 
+  /**
+   * Handles mouse down to initiate resizing
+   * @param {object} e - The mouse event
+   * @returns {void}
+   */
   const handleMouseDown = (e) => {
     // Don't handle if clicking on close button or interactive elements
     if (e.target.closest('.viz-viz-close-btn, select, button, input, textarea, a')) {
@@ -135,6 +205,11 @@ export function DraggableVisualization({
   React.useEffect(() => {
     if (!isResizing) return;
 
+    /**
+     * Handles mouse movement during resize operation
+     * @param {object} e - The mouse event
+     * @returns {void}
+     */
     const handleResizeMove = (e) => {
       if (!resizeStartRef.current) return;
 
@@ -170,6 +245,10 @@ export function DraggableVisualization({
       }
     };
 
+    /**
+     * Handles the end of a resize operation
+     * @returns {void}
+     */
     const handleResizeEnd = () => {
       setIsResizing(false);
       resizeStartRef.current = null;

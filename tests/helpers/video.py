@@ -28,7 +28,7 @@ def create_test_video_animation(
         import av  # PyAV for video encoding
     except ImportError:
         # Fallback: create a placeholder file
-        print("⚠️  PyAV not available, creating placeholder video")
+        print("PyAV not available, creating placeholder video")
         uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
         os.makedirs(uploads_dir, exist_ok=True)
         filepath = os.path.join(uploads_dir, filename)
